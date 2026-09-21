@@ -9,7 +9,7 @@ class UpstoxCredentials:
     analytics_token: str
 
     @classmethod
-    def from_env(cls) -> "UpstoxCredentials":
+    def from_env(cls) -> UpstoxCredentials:
         token = os.getenv("UPSTOX_ANALYTICS_TOKEN", "").strip()
         if not token:
             raise RuntimeError("UPSTOX_ANALYTICS_TOKEN is not configured")
