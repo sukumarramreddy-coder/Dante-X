@@ -42,4 +42,15 @@ No LLM-generated percentage is represented as a win probability.
 
 ## Status
 
-Foundation build in progress.
+Core foundation is implemented on the foundation branch: signal lifecycle, two-sided hypotheses, market-response intelligence, execution/risk gates, immutable triggers, shadow simulation, audit persistence, calibration scaffolding, Radar API contract and terminal UI shell.
+
+The system intentionally remains **SHADOW / research mode** until a production market-data provider is connected and historical walk-forward validation makes probability calibration publishable. See `docs/PRODUCTION_READINESS.md`.
+
+### Next external inputs
+
+To cross from code-complete foundation to validated live intelligence, the project needs:
+- approved read-only live market-data credentials/provider
+- a normalized historical dataset suitable for walk-forward validation
+- a deployment target for the engine/UI
+
+These are operational inputs, not reasons to weaken the safety gates.
