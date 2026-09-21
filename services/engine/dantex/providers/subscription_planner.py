@@ -18,8 +18,9 @@ def plan_subscriptions(
     radar_keys: list[str],
     focus_keys: list[str],
     option_keys: list[str],
-    limits: FeedLimits = FeedLimits(),
+    limits: FeedLimits | None = None,
 ) -> tuple[Subscription, ...]:
+    limits = limits or FeedLimits()
     focus = tuple(dict.fromkeys(focus_keys))[:limits.full]
     focus_set = set(focus)
     options = tuple(k for k in dict.fromkeys(option_keys) if k not in focus_set)
