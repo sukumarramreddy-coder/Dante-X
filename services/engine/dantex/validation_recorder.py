@@ -56,7 +56,7 @@ class ValidationRecorder:
             self._external_write({"recorded_at":now,"state":families.get("state"),
               "family_counts":deepcopy(families.get("family_counts")),
               "readiness":deepcopy(families.get("readiness")),
-              "decision":deepcopy(decision),"market_snapshot":deepcopy(market_snapshot)})
+              "decision":deepcopy(decision),"market_snapshot":deepcopy(market_snapshot),"source_sample_id":sample_id})
         except Exception:
             pass
         return sample_id
