@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from .domain import Lifecycle, Side
+from .domain import Lifecycle
 from .state import ArmedPlan, LiveSignalState, evaluate_armed
 
 
