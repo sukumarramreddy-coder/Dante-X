@@ -28,6 +28,14 @@ def breadth_family(quotes: list[dict[str, Any]]) -> dict[str, Any]:
         return {"state":"UNAVAILABLE","ce":0.0,"pe":0.0,
                 "quality":{"usable":len(usable),"required":10},
                 "reasons":["insufficient constituent quotes"]}
+    # A fully flat basket outside a live session is not genuine neutral breadth;
+    # it is a closed-market/stale snapshot and must have zero evidentiary weight.
+    if max(abs(x) for x in usable) < 0.01:
+        return {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                "metrics":{"advancers":0,"decliners":0,"flat":len(usable),
+                           "participation_balance":0.0,"median_change_pct":0.0},
+                "quality":{"usable":len(usable),"required":10,"freshness":"NON_MOVING_SNAPSHOT"},
+                "reasons":["constituent basket is fully flat; breadth blocked outside live price discovery"]}
     adv=sum(x>0.05 for x in usable); dec=sum(x<-.05 for x in usable); flat=len(usable)-adv-dec
     ratio=(adv-dec)/len(usable)
     median=sorted(usable)[len(usable)//2]
