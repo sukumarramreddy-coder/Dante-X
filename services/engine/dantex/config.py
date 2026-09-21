@@ -11,7 +11,7 @@ class Settings:
     max_daily_loss: float
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         mode = getenv("DANTEX_MODE", "shadow").lower()
         if mode not in {"shadow", "live"}:
             raise ValueError("DANTEX_MODE must be shadow or live")
