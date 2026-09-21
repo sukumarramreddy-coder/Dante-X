@@ -59,7 +59,14 @@ def option_duel():
     bank = options_intelligence.snapshot("BANKNIFTY")
     if nifty.get("status") != "OK" or bank.get("status") != "OK":
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow"}
-    return {"duel": duel(nifty, bank), "nifty": nifty["path_response"], "banknifty": bank["path_response"], "mode": "shadow"}
+    nifty_structure = structure_snapshot("NIFTY")
+    bank_structure = structure_snapshot("BANKNIFTY")
+    return {
+        "duel": duel(nifty, bank, nifty_structure, bank_structure),
+        "nifty": {"path": nifty["path_response"], "structure": nifty_structure},
+        "banknifty": {"path": bank["path_response"], "structure": bank_structure},
+        "mode": "shadow",
+    }
 
 
 @app.get("/v1/options/{symbol}")
