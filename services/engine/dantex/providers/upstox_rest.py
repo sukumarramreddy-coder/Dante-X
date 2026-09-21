@@ -39,5 +39,9 @@ class UpstoxRestClient:
         key = quote(instrument_key, safe="")
         return self._get(f"/v2/option/chain?instrument_key={key}&expiry_date={expiry_date}")
 
+    def full_market_quote(self, instrument_key: str) -> dict:
+        key = quote(instrument_key, safe="")
+        return self._get(f"/v3/market-quote/quotes?instrument_key={key}")
+
     def market_feed_authorize(self) -> dict:
         return self._get("/feed/market-data-feed/authorize")
