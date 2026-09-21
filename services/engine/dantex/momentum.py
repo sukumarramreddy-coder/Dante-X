@@ -19,6 +19,16 @@ def momentum_family(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Short-horizon velocity/impulse family. Descriptive; never authorizes trades."""
     if len(rows) < 21:
         return {"state":"UNAVAILABLE","ce":0.0,"pe":0.0,"reasons":["insufficient candles"]}
+    # Provider index bars can contain synthetic/flat intervals. Do not interpret
+    # a closing print after a long flat run as genuine multi-minute momentum.
+    tail=rows[-20:]
+    flat_pairs=sum(float(a["close"]) == float(b["close"]) for a,b in zip(tail,tail[1:]))
+    flat_ratio=flat_pairs/max(len(tail)-1,1)
+    zero_volume_ratio=sum(float(r.get("volume") or 0)==0 for r in tail)/len(tail)
+    if flat_ratio >= 0.5 and zero_volume_ratio >= 0.9:
+        return {"state":"DATA_QUALITY_BLOCK","ce":0.0,"pe":0.0,
+                "metrics":{"flat_pair_ratio":round(flat_ratio,3),"zero_volume_ratio":round(zero_volume_ratio,3)},
+                "reasons":["synthetic/flat index bars make short-horizon velocity unreliable"]}
     closes=[float(r["close"]) for r in rows]
     last=closes[-1]; atr=_atr(rows) or 0.0
     d3=last-closes[-4]; d10=last-closes[-11]
