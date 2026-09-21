@@ -10,6 +10,7 @@ from .providers.upstox_rest import UpstoxRestClient
 from .providers.upstox_live import nifty_live_probe
 from .providers.upstox_core_live import core_live_feed
 from .providers.upstox_master import instrument_master
+from .providers.options_intelligence import options_intelligence
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
@@ -18,6 +19,16 @@ app = FastAPI(title="Dante X Engine", version="0.1.0")
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/options/{symbol}")
+def options_snapshot(symbol: str):
+    """Nearest-expiry ATM neighborhood with read-only Upstox chain/Greeks."""
+    normalized = symbol.upper()
+    if normalized not in {"NIFTY", "BANKNIFTY"}:
+        return {"status": "UNSUPPORTED_SYMBOL", "symbol": normalized, "mode": "shadow"}
+    instrument_master.refresh_async()
+    return options_intelligence.snapshot(normalized)
 
 
 @app.get("/v1/market/state")
