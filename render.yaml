@@ -10,3 +10,9 @@ services:
         value: shadow
       - key: UPSTOX_ANALYTICS_TOKEN
         sync: false
+      - key: DANTEX_VALIDATION_DB
+        value: /var/data/dantex-validation.sqlite3
+    disk:
+      name: dantex-data
+      mountPath: /var/data
+      sizeGB: 1
