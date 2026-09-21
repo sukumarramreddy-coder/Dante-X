@@ -10,6 +10,10 @@ def _direction(ce: float, pe: float) -> str:
 def structure_family(s: dict[str, Any] | None) -> dict[str, Any]:
     if not s or s.get("status") != "OK":
         return {"state":"UNAVAILABLE","ce":0.0,"pe":0.0,"reasons":[]}
+    if s.get("evidence_eligible") is False:
+        return {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                "quality":{"freshness":s.get("freshness"),"session_date":s.get("session_date")},
+                "reasons":["structure retained for context but blocked from live evidence"]}
     ce=pe=0.0; reasons=[]
     trend=s.get("trend"); opening=s.get("opening_range_state"); loc=s.get("location") or {}
     if trend=="BULLISH": ce+=1; reasons.append("bullish EMA alignment")
