@@ -69,6 +69,21 @@ def option_duel():
     families["families"]["nifty_momentum"] = n_momentum
     families["families"]["banknifty_momentum"] = b_momentum
     families["families"]["cross_index_momentum"] = cross_index_momentum(n_momentum, b_momentum)
+    # Recompute consensus after runtime families are attached. DATA_QUALITY_BLOCK
+    # and NEUTRAL families deliberately have zero directional voting power.
+    directional = [v for v in families["families"].values() if v.get("state") in {"CE", "PE", "CONFLICT"}]
+    ce_count = sum(v.get("state") == "CE" for v in directional)
+    pe_count = sum(v.get("state") == "PE" for v in directional)
+    conflict_count = sum(v.get("state") == "CONFLICT" for v in directional)
+    families["family_counts"] = {"ce": ce_count, "pe": pe_count, "conflict": conflict_count, "directional": len(directional)}
+    if conflict_count or (ce_count and pe_count):
+        families["state"] = "CONFLICT"
+    elif ce_count >= 2:
+        families["state"] = "CE_EVIDENCE"
+    elif pe_count >= 2:
+        families["state"] = "PE_EVIDENCE"
+    else:
+        families["state"] = "NO_EDGE"
     return {
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
         "evidence_families": families,
