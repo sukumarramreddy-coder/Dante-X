@@ -68,6 +68,23 @@ def option_duel():
     families = evidence_families(nifty, bank, nifty_structure, bank_structure)
     session = market_session()
     families["freshness"] = {"session": session}
+    n_path = nifty.get("path_response") or {}
+    b_path = bank.get("path_response") or {}
+    n_options_gate = freshness_gate(source="NIFTY_OPTIONS", timestamp=n_path.get("last_sample_at"), session_date=n_path.get("session_date"))
+    b_options_gate = freshness_gate(source="BANKNIFTY_OPTIONS", timestamp=b_path.get("last_sample_at"), session_date=b_path.get("session_date"))
+    families["freshness"]["nifty_options"] = n_options_gate
+    families["freshness"]["banknifty_options"] = b_options_gate
+    if not (n_options_gate["eligible"] and b_options_gate["eligible"]):
+        families["families"]["options_response"] = {
+            "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+            "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+            "reasons":n_options_gate["reasons"] + b_options_gate["reasons"],
+        }
+        families["families"]["cross_index"] = {
+            "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+            "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+            "reasons":["cross-index path requires fresh NIFTY and BANKNIFTY option observations"],
+        }
     # Momentum is a live-session family. Historical fallback candles remain
     # visible as context but must never be reinterpreted as current velocity.
     n_structure_gate = freshness_gate(source="NIFTY_STRUCTURE", timestamp=nifty_structure.get("last_candle_ts"), session_date=nifty_structure.get("session_date"), provider_fresh=nifty_structure.get("evidence_eligible"))
@@ -102,7 +119,13 @@ def option_duel():
                 "ltp": item.get("last_price") or item.get("ltp"),
                 "prev_close": ohlc.get("close") or item.get("prev_close"),
             })
-        families["families"]["breadth"] = breadth_family(quotes)
+        breadth_gate = freshness_gate(source="BREADTH", provider_fresh=None)
+        families["freshness"]["breadth"] = breadth_gate
+        families["families"]["breadth"] = breadth_family(quotes) if breadth_gate["eligible"] else {
+            "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+            "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+            "reasons":breadth_gate["reasons"],
+        }
         sector_payload = client.full_market_quotes(list(SECTOR_INDEX_KEYS.values()))
         sector_raw = sector_payload.get("data") or {}
         sector_quotes = {}
@@ -117,7 +140,13 @@ def option_duel():
                 ohlc = item.get("ohlc") or {}
                 sector_quotes[name] = {"ltp":item.get("last_price") or item.get("ltp"),
                                        "prev_close":ohlc.get("close") or item.get("prev_close")}
-        families["families"]["sector_leadership"] = sector_leadership_family(sector_quotes)
+        sector_gate = freshness_gate(source="SECTOR_LEADERSHIP", provider_fresh=None)
+        families["freshness"]["sector_leadership"] = sector_gate
+        families["families"]["sector_leadership"] = sector_leadership_family(sector_quotes) if sector_gate["eligible"] else {
+            "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+            "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+            "reasons":sector_gate["reasons"],
+        }
         vix_payload = client.full_market_quotes([INDIA_VIX_KEY])
         vix_raw = vix_payload.get("data") or {}
         vix_item = vix_raw.get(INDIA_VIX_KEY)
