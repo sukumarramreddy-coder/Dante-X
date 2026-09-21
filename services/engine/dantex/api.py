@@ -18,7 +18,7 @@ from .breadth import breadth_family, sector_leadership_family, volatility_family
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
-from .freshness import gate as freshness_gate, market_session
+from .freshness import gate as freshness_gate, market_session, system_readiness
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
@@ -188,6 +188,7 @@ def option_duel():
     consensus = recompute_consensus(families["families"])
     families["state"] = consensus["state"]
     families["family_counts"] = consensus["family_counts"]
+    families["readiness"] = system_readiness(families["freshness"], families["families"])
     return {
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
         "evidence_families": families,
