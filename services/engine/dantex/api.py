@@ -13,6 +13,7 @@ from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
 from .observation_loop import observation_loop
+from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
@@ -29,6 +30,18 @@ def start_shadow_observers():
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/structure/{symbol}")
+def live_structure(symbol: str):
+    """Read-only intraday structure: VWAP, OR, EMA, ATR and prior-day levels."""
+    normalized = symbol.upper()
+    if normalized not in {"NIFTY", "BANKNIFTY"}:
+        return {"status": "UNSUPPORTED_SYMBOL", "symbol": normalized, "mode": "shadow"}
+    try:
+        return structure_snapshot(normalized)
+    except Exception as exc:
+        return {"symbol": normalized, "status": "DEGRADED", "error": f"{type(exc).__name__}: {str(exc)[:180]}", "mode": "shadow"}
 
 
 @app.get("/v1/observation/status")
