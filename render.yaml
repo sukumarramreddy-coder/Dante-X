@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: dante-x-engine
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DANTEX_MODE
+        value: shadow
+      - key: UPSTOX_ANALYTICS_TOKEN
+        sync: false
