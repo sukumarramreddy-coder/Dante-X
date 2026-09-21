@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, os, sqlite3
+import json, os, sqlite3, urllib.request
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +29,17 @@ class ValidationRecorder:
                 if name not in cols: db.execute(f"ALTER TABLE validation_samples ADD COLUMN {name} {typ}")
             db.execute("CREATE INDEX IF NOT EXISTS idx_validation_recorded_at ON validation_samples(recorded_at)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_validation_state ON validation_samples(state)")
+    def _external_write(self,row:dict[str,Any])->bool:
+        """Optional zero-cost durable sink. Compatible with Supabase REST when configured."""
+        url=os.getenv("DANTEX_VALIDATION_REST_URL","").rstrip("/")
+        key=os.getenv("DANTEX_VALIDATION_REST_KEY","")
+        if not url or not key:return False
+        req=urllib.request.Request(url,data=json.dumps(row).encode(),method="POST",
+            headers={"Content-Type":"application/json","apikey":key,
+                     "Authorization":f"Bearer {key}","Prefer":"return=minimal"})
+        with urllib.request.urlopen(req,timeout=8) as resp:
+            if resp.status not in (200,201,204):raise RuntimeError(f"external validation sink HTTP {resp.status}")
+        return True
     def record_duel(self,families:dict[str,Any],decision:dict[str,Any]|None=None,market_snapshot:dict[str,Any]|None=None)->int:
         now=datetime.now(IST).isoformat()
         with self._lock,self._connect() as db:
@@ -38,7 +49,17 @@ class ValidationRecorder:
               json.dumps(deepcopy(families.get("family_counts"))),
               json.dumps(deepcopy(families.get("readiness"))),
               json.dumps(deepcopy(decision)),json.dumps(deepcopy(market_snapshot))))
-            return int(cur.lastrowid)
+            sample_id=int(cur.lastrowid)
+        # Local SQLite is always retained as a fallback; configured external
+        # storage is the durable copy when Render's filesystem is ephemeral.
+        try:
+            self._external_write({"recorded_at":now,"state":families.get("state"),
+              "family_counts":deepcopy(families.get("family_counts")),
+              "readiness":deepcopy(families.get("readiness")),
+              "decision":deepcopy(decision),"market_snapshot":deepcopy(market_snapshot)})
+        except Exception:
+            pass
+        return sample_id
     def record(self,payload:dict[str,Any])->None:self.record_duel(payload,None)
     def label(self,sample_id:int,outcome:dict[str,Any])->None:
         with self._lock,self._connect() as db:
@@ -49,10 +70,11 @@ class ValidationRecorder:
             count,first,last,labelled=db.execute("""SELECT COUNT(*),MIN(recorded_at),
               MAX(recorded_at),SUM(CASE WHEN outcome IS NOT NULL THEN 1 ELSE 0 END)
               FROM validation_samples""").fetchone()
-        persistent=not self.path.startswith("/tmp/")
+        external=bool(os.getenv("DANTEX_VALIDATION_REST_URL") and os.getenv("DANTEX_VALIDATION_REST_KEY"))
+        persistent=external or not self.path.startswith("/tmp/")
         return {"samples":count,"labelled_samples":labelled or 0,"first":first,"last":last,
-          "persistent":persistent,"storage":"sqlite",
-          "path":self.path if persistent else "ephemeral-runtime-disk","mode":"shadow",
+          "persistent":persistent,"storage":"external+sqlite" if external else "sqlite",
+          "path":"external-rest" if external else (self.path if persistent else "ephemeral-runtime-disk"),"mode":"shadow",
           "calibration_ready":False,
           "note":"Outcome-capable SHADOW dataset. Statistical calibration remains disabled until sufficient labelled out-of-sample history exists."}
 
