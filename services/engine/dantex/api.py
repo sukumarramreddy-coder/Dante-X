@@ -14,7 +14,7 @@ from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
 from .evidence_families import evidence_families
 from .momentum import momentum_family, cross_index_momentum
-from .breadth import breadth_family, NIFTY_BREADTH_KEYS
+from .breadth import breadth_family, sector_leadership_family, NIFTY_BREADTH_KEYS, SECTOR_INDEX_KEYS
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
@@ -98,11 +98,31 @@ def option_duel():
                 "prev_close": ohlc.get("close") or item.get("prev_close"),
             })
         families["families"]["breadth"] = breadth_family(quotes)
+        sector_payload = client.full_market_quotes(list(SECTOR_INDEX_KEYS.values()))
+        sector_raw = sector_payload.get("data") or {}
+        sector_quotes = {}
+        for name, key in SECTOR_INDEX_KEYS.items():
+            # Provider response keys may use instrument token or symbol form;
+            # match exact key first, then normalized instrument-token suffix.
+            item = sector_raw.get(key)
+            if item is None and isinstance(sector_raw, dict):
+                item = next((v for k,v in sector_raw.items()
+                             if isinstance(v,dict) and (k == key or v.get("instrument_token") == key)), None)
+            if isinstance(item, dict):
+                ohlc = item.get("ohlc") or {}
+                sector_quotes[name] = {"ltp":item.get("last_price") or item.get("ltp"),
+                                       "prev_close":ohlc.get("close") or item.get("prev_close")}
+        families["families"]["sector_leadership"] = sector_leadership_family(sector_quotes)
     except Exception as exc:
         families["families"]["breadth"] = {
             "state":"UNAVAILABLE","ce":0.0,"pe":0.0,
             "quality":{"usable":0,"required":10},
             "reasons":[f"breadth provider unavailable: {type(exc).__name__}"],
+        }
+        families["families"]["sector_leadership"] = {
+            "state":"UNAVAILABLE","ce":0.0,"pe":0.0,
+            "quality":{"usable":0,"required":5},
+            "reasons":[f"sector provider unavailable: {type(exc).__name__}"],
         }
     # Recompute consensus after runtime families are attached. DATA_QUALITY_BLOCK
     # and NEUTRAL families deliberately have zero directional voting power.
