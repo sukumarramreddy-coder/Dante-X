@@ -45,5 +45,10 @@ class UpstoxRestClient:
         key = quote(instrument_key, safe="")
         return self._get(f"/v3/market-quote/quotes?instrument_key={key}")
 
+    def full_market_quotes(self, instrument_keys: list[str]) -> dict:
+        # Upstox accepts a comma-separated instrument_key query for quote batching.
+        keys = quote(",".join(instrument_keys), safe=",")
+        return self._get(f"/v3/market-quote/quotes?instrument_key={keys}")
+
     def market_feed_authorize(self) -> dict:
         return self._get("/v3/feed/market-data-feed/authorize")
