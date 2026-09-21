@@ -13,6 +13,7 @@ from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
 from .evidence_families import evidence_families
+from .momentum import momentum_family, cross_index_momentum
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
@@ -62,9 +63,15 @@ def option_duel():
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow"}
     nifty_structure = structure_snapshot("NIFTY")
     bank_structure = structure_snapshot("BANKNIFTY")
+    families = evidence_families(nifty, bank, nifty_structure, bank_structure)
+    n_momentum = momentum_family(nifty_structure.get("recent_candles") or [])
+    b_momentum = momentum_family(bank_structure.get("recent_candles") or [])
+    families["families"]["nifty_momentum"] = n_momentum
+    families["families"]["banknifty_momentum"] = b_momentum
+    families["families"]["cross_index_momentum"] = cross_index_momentum(n_momentum, b_momentum)
     return {
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
-        "evidence_families": evidence_families(nifty, bank, nifty_structure, bank_structure),
+        "evidence_families": families,
         "nifty": {"path": nifty["path_response"], "structure": nifty_structure},
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
