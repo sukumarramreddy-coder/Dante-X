@@ -58,6 +58,21 @@ def _leg(row: dict[str, Any], side: str) -> dict[str, Any]:
     }
 
 
+def _quality(leg: dict[str, Any]) -> dict[str, Any]:
+    spread_pct = leg.get("spread_pct")
+    volume = leg.get("volume") or 0
+    oi = leg.get("oi") or 0
+    # Execution-quality score only; deliberately not a directional signal.
+    spread_score = 40 if spread_pct is not None and spread_pct <= 0.5 else 30 if spread_pct is not None and spread_pct <= 1.0 else 15 if spread_pct is not None and spread_pct <= 2.0 else 0
+    volume_score = 30 if volume >= 1_000_000 else 20 if volume >= 250_000 else 10 if volume >= 50_000 else 0
+    oi_score = 30 if oi >= 250_000 else 20 if oi >= 100_000 else 10 if oi >= 25_000 else 0
+    score = spread_score + volume_score + oi_score
+    return {
+        "execution_score": score,
+        "grade": "A" if score >= 85 else "B" if score >= 70 else "C" if score >= 50 else "D",
+    }
+
+
 @dataclass
 class OptionsIntelligence:
     def snapshot(self, symbol: str, *, wings: int = 2) -> dict[str, Any]:
@@ -87,6 +102,8 @@ class OptionsIntelligence:
                 continue
             call = _leg(row, "call")
             put = _leg(row, "put")
+            call["quality"] = _quality(call)
+            put["quality"] = _quality(put)
             parsed.append({
                 "strike": strike,
                 "pcr": _num(row.get("pcr")),
@@ -111,7 +128,8 @@ class OptionsIntelligence:
             "strikes": selected,
             "quality": {
                 "selection": "nearest-expiry ATM +/- 2 strikes",
-                "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks"],
+                "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks", "execution_score"],
+                "note": "execution_score measures tradability only, not bullish/bearish direction",
             },
             "status": "OK",
             "mode": "shadow",
