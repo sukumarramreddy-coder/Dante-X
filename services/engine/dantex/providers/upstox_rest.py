@@ -17,6 +17,8 @@ class UpstoxRestClient:
             self.config.rest_base + path,
             headers={
                 "Accept": "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "Dante-X/0.1 (+https://dante-x-engine.onrender.com)",
                 "Authorization": "Bearer " + self.config.access_token,
             },
         )
