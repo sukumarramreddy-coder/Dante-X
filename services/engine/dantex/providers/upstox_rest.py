@@ -40,4 +40,4 @@ class UpstoxRestClient:
         return self._get(f"/v2/option/chain?instrument_key={key}&expiry_date={expiry_date}")
 
     def market_feed_authorize(self) -> dict:
-        return self._get("/v3/feed/market-data-feed/authorize")
+        return self._get("/feed/market-data-feed/authorize")
