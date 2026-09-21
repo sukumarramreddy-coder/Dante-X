@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
+from collections import deque
+from threading import Lock
+from time import time
 
 from .credentials import UpstoxCredentials
 from .upstox import UpstoxConfig
@@ -105,6 +108,58 @@ def _response_summary(strikes: list[dict[str, Any]], atm: float) -> dict[str, An
 
 @dataclass
 class OptionsIntelligence:
+    _history: dict[str, deque] = None
+    _lock: Lock = None
+
+    def __post_init__(self) -> None:
+        self._history = {}
+        self._lock = Lock()
+
+    def _track(self, symbol: str, spot: float, atm: float, strikes: list[dict[str, Any]]) -> dict[str, Any]:
+        now = time()
+        atm_row = min(strikes, key=lambda x: abs(x["strike"] - atm))
+        point = {
+            "ts": now, "spot": spot,
+            "call_ltp": atm_row["call"].get("ltp"),
+            "put_ltp": atm_row["put"].get("ltp"),
+            "call_iv": atm_row["call"].get("iv"),
+            "put_iv": atm_row["put"].get("iv"),
+            "call_oi": atm_row["call"].get("oi"),
+            "put_oi": atm_row["put"].get("oi"),
+        }
+        with self._lock:
+            history = self._history.setdefault(symbol, deque(maxlen=60))
+            history.append(point)
+            if len(history) < 2:
+                return {"state": "BUILDING_BASELINE", "samples": len(history)}
+            base = history[0]
+            latest = history[-1]
+        def pct(a: Any, b: Any) -> float | None:
+            return round((b - a) / a * 100, 3) if a not in (None, 0) and b is not None else None
+        spot_change = latest["spot"] - base["spot"]
+        call_pct = pct(base["call_ltp"], latest["call_ltp"])
+        put_pct = pct(base["put_ltp"], latest["put_ltp"])
+        classification = "NO_EDGE"
+        if abs(spot_change) >= 5 and call_pct is not None and put_pct is not None:
+            if spot_change > 0 and call_pct > 0 and put_pct < 0:
+                classification = "CE_STRENGTHENING"
+            elif spot_change < 0 and put_pct > 0 and call_pct < 0:
+                classification = "PE_STRENGTHENING"
+            elif spot_change > 0 and put_pct >= 0:
+                classification = "BULL_MOVE_REFUSED_BY_OPTIONS"
+            elif spot_change < 0 and call_pct >= 0:
+                classification = "BEAR_MOVE_REFUSED_BY_OPTIONS"
+            else:
+                classification = "CONFLICT"
+        return {
+            "state": classification,
+            "samples": len(history),
+            "window_seconds": round(latest["ts"] - base["ts"], 1),
+            "spot_change": round(spot_change, 2),
+            "atm_call_change_pct": call_pct,
+            "atm_put_change_pct": put_pct,
+            "note": "Live path evidence only; not trade authorization.",
+        }
     def snapshot(self, symbol: str, *, wings: int = 2) -> dict[str, Any]:
         symbol = symbol.upper()
         underlying_key = UNDERLYINGS[symbol]
@@ -149,6 +204,7 @@ class OptionsIntelligence:
         ordered = sorted(parsed, key=lambda x: x["strike"])
         atm_index = next(i for i, x in enumerate(ordered) if x["strike"] == atm)
         selected = ordered[max(0, atm_index - wings): atm_index + wings + 1]
+        path = self._track(symbol, spot, atm, selected)
         return {
             "symbol": symbol,
             "underlying_key": underlying_key,
@@ -157,6 +213,7 @@ class OptionsIntelligence:
             "atm_strike": atm,
             "strikes": selected,
             "response": _response_summary(selected, atm),
+            "path_response": path,
             "quality": {
                 "selection": "nearest-expiry ATM +/- 2 strikes",
                 "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks", "execution_score"],
