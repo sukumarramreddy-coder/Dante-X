@@ -18,6 +18,13 @@ class ValidationRecorder:
              "family_counts":deepcopy(payload.get("family_counts")),
              "readiness":deepcopy(payload.get("readiness"))}
         with self._lock:self._rows.append(row)
+    def record_duel(self, families:dict[str,Any], decision:dict[str,Any]|None=None)->None:
+        row={"recorded_at":datetime.now(IST).isoformat(),
+             "state":families.get("state"),
+             "family_counts":deepcopy(families.get("family_counts")),
+             "readiness":deepcopy(families.get("readiness")),
+             "decision":deepcopy(decision)}
+        with self._lock:self._rows.append(row)
     def status(self)->dict[str,Any]:
         with self._lock:
             return {"samples":len(self._rows),
