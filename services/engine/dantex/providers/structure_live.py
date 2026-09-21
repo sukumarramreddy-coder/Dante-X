@@ -117,6 +117,7 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
     }
     return {
         "symbol": symbol, "instrument_key": key, "last": last["close"], "last_candle_ts": last["ts"],
+        "recent_candles": rows[-60:],
         "candles": len(rows), "vwap": session_vwap, "vwap_status": vwap_status, "ema9": round(e9,2) if e9 else None,
         "ema20": round(e20,2) if e20 else None, "ema50": round(e50,2) if e50 else None,
         "atr14": _atr(rows), "opening_range": {"high": or_high, "low": or_low},
