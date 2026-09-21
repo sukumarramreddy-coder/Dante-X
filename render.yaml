@@ -2,6 +2,7 @@ services:
   - type: web
     name: dante-x-engine
     runtime: docker
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
