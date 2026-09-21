@@ -202,7 +202,7 @@ def option_duel():
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
-    validation_recorder.record(families)
+    validation_recorder.record_duel(families, decision)
     return {
         "decision": decision,
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
