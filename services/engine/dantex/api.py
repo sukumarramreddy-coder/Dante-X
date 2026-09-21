@@ -215,7 +215,21 @@ def option_duel():
 
 @app.get("/v1/validation/status")
 def validation_status():
-    return validation_recorder.status()
+    # Record a diagnostic heartbeat so this endpoint proves SQLite writes
+    # independently of whether /v1/duel completed successfully.
+    try:
+        validation_recorder.record_duel(
+            {"state":"DIAGNOSTIC","family_counts":{},"readiness":{"diagnostic":True}},
+            {"status":"VALIDATION_HEARTBEAT","authorization":"NONE"},
+        )
+    except Exception as exc:
+        status=validation_recorder.status()
+        status["write_test"]="FAILED"
+        status["write_error"]=f"{type(exc).__name__}: {str(exc)[:180]}"
+        return status
+    status=validation_recorder.status()
+    status["write_test"]="OK"
+    return status
 
 
 @app.get("/v1/options/{symbol}")
