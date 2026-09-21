@@ -12,9 +12,9 @@ def _num(v):
 def label_from_path(sample:dict[str,Any], future_rows:list[dict[str,Any]])->dict[str,Any]|None:
     """Deterministic SHADOW label. No probability claims; requires observed future prices."""
     decision=sample.get("decision") or {}
-    if decision.get("state") not in {"DETECTED","ARMED","GO"}:return {"eligible":False,"reason":"no directional shadow setup"}
+    if (decision.get("status") or decision.get("state")) not in {"DETECTED","ARMED","GO"}:return {"eligible":False,"reason":"no directional shadow setup"}
     plan=decision.get("plan") or decision.get("execution") or decision
-    entry=_num(plan.get("entry")); stop=_num(plan.get("stop")); t1=_num(plan.get("t1")); t2=_num(plan.get("t2"))
+    entry=_num(plan.get("entry") or plan.get("reference_entry")); stop=_num(plan.get("stop") or plan.get("reference_stop")); t1=_num(plan.get("t1") or plan.get("reference_t1")); t2=_num(plan.get("t2") or plan.get("reference_t2"))
     if None in (entry,stop,t1,t2):return {"eligible":False,"reason":"execution geometry unavailable"}
     prices=[]
     for r in future_rows:
