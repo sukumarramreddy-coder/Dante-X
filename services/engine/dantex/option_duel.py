@@ -62,6 +62,9 @@ def duel(nifty: dict[str, Any], bank: dict[str, Any], nifty_structure: dict[str,
         if not structure or structure.get("status") != "OK":
             evidence.append(f"{label} structure unavailable")
             continue
+        if structure.get("evidence_eligible") is False:
+            evidence.append(f"{label} structure stale context ({structure.get('session_date') or 'unknown session'}); blocked from duel")
+            continue
         sc, sp, reasons = _structure_vote(structure)
         ce += sc
         pe += sp
