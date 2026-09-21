@@ -12,7 +12,7 @@ from .providers.upstox_core_live import core_live_feed
 from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
-from .evidence_families import evidence_families
+from .evidence_families import evidence_families, recompute_consensus
 from .momentum import momentum_family, cross_index_momentum
 from .breadth import breadth_family, sector_leadership_family, volatility_family, NIFTY_BREADTH_KEYS, SECTOR_INDEX_KEYS, INDIA_VIX_KEY
 from .observation_loop import observation_loop
@@ -79,9 +79,7 @@ def option_duel():
                       "reasons":["historical structure candles blocked from live momentum"]}
     else:
         b_momentum = momentum_family(bank_structure.get("recent_candles") or [])
-    families["families"]["nifty_momentum"] = n_momentum
-    families["families"]["banknifty_momentum"] = b_momentum
-    families["families"]["cross_index_momentum"] = cross_index_momentum(n_momentum, b_momentum)
+    families["families"]["momentum_velocity"] = cross_index_momentum(n_momentum, b_momentum)
     # Breadth is fetched independently from actual liquid constituents. Fail
     # closed on provider/shape errors; never turn missing breadth into a vote.
     try:
@@ -142,21 +140,11 @@ def option_duel():
             "quality":{"usable":False},
             "reasons":[f"India VIX provider unavailable: {type(exc).__name__}"],
         }
-    # Recompute consensus after runtime families are attached. DATA_QUALITY_BLOCK
-    # and NEUTRAL families deliberately have zero directional voting power.
-    directional = [v for v in families["families"].values() if v.get("state") in {"CE", "PE", "CONFLICT"}]
-    ce_count = sum(v.get("state") == "CE" for v in directional)
-    pe_count = sum(v.get("state") == "PE" for v in directional)
-    conflict_count = sum(v.get("state") == "CONFLICT" for v in directional)
-    families["family_counts"] = {"ce": ce_count, "pe": pe_count, "conflict": conflict_count, "directional": len(directional)}
-    if conflict_count or (ce_count and pe_count):
-        families["state"] = "CONFLICT"
-    elif ce_count >= 2:
-        families["state"] = "CE_EVIDENCE"
-    elif pe_count >= 2:
-        families["state"] = "PE_EVIDENCE"
-    else:
-        families["state"] = "NO_EDGE"
+    # One vote per independent family; correlated per-index observations are
+    # synthesized before consensus.
+    consensus = recompute_consensus(families["families"])
+    families["state"] = consensus["state"]
+    families["family_counts"] = consensus["family_counts"]
     return {
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
         "evidence_families": families,
