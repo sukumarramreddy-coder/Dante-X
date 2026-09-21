@@ -21,6 +21,7 @@ from .radar import RadarInputs, opportunity_score
 from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
+from .validation_recorder import validation_recorder
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
@@ -201,6 +202,7 @@ def option_duel():
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
+    validation_recorder.record(families)
     return {
         "decision": decision,
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
@@ -209,6 +211,11 @@ def option_duel():
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
     }
+
+
+@app.get("/v1/validation/status")
+def validation_status():
+    return validation_recorder.status()
 
 
 @app.get("/v1/options/{symbol}")
