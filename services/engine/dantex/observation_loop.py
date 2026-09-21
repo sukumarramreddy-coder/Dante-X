@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 from .providers.options_intelligence import options_intelligence
 from .providers.upstox_master import instrument_master
 from .freshness import market_session
+from .validation_recorder import validation_recorder
+from .outcome_tracker import OutcomeTracker
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -26,6 +28,7 @@ class ObservationLoop:
     last_error: str | None = None
     _started: bool = field(default=False, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
+    _outcomes: OutcomeTracker = field(default_factory=lambda: OutcomeTracker(validation_recorder), repr=False)
 
     def start(self) -> None:
         with self._lock:
@@ -47,10 +50,13 @@ class ObservationLoop:
                 instrument_master.refresh_async()
                 # Snapshot both underlyings on the same cadence. The option
                 # intelligence object owns bounded per-symbol history.
+                snapshots = {}
                 for symbol in ("NIFTY", "BANKNIFTY"):
                     snap = options_intelligence.snapshot(symbol)
                     if snap.get("status") != "OK":
                         raise RuntimeError(f"{symbol}:{snap.get('status')}")
+                    snapshots[symbol] = snap
+                self._outcomes.observe(snapshots)
                 with self._lock:
                     self.samples += 1
                     self.last_sample_at = datetime.now(IST)
