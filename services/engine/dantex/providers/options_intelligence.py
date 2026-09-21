@@ -73,6 +73,36 @@ def _quality(leg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _response_summary(strikes: list[dict[str, Any]], atm: float) -> dict[str, Any]:
+    """Descriptive CE/PE positioning evidence; not a directional trade signal."""
+    near = [x for x in strikes if abs(x["strike"] - atm) <= 100]
+    def agg(side: str) -> dict[str, Any]:
+        legs = [x[side] for x in near]
+        oi_change = sum((x.get("oi_change") or 0) for x in legs)
+        volume = sum((x.get("volume") or 0) for x in legs)
+        ivs = [x["iv"] for x in legs if x.get("iv") is not None]
+        spreads = [x["spread_pct"] for x in legs if x.get("spread_pct") is not None]
+        qualities = [x.get("quality", {}).get("execution_score") for x in legs]
+        qualities = [x for x in qualities if x is not None]
+        return {
+            "near_atm_oi_change": oi_change,
+            "near_atm_volume": volume,
+            "avg_iv": round(sum(ivs) / len(ivs), 3) if ivs else None,
+            "avg_spread_pct": round(sum(spreads) / len(spreads), 3) if spreads else None,
+            "avg_execution_score": round(sum(qualities) / len(qualities), 1) if qualities else None,
+        }
+    call = agg("call")
+    put = agg("put")
+    return {
+        "call": call,
+        "put": put,
+        "volume_ratio_put_call": round(put["near_atm_volume"] / call["near_atm_volume"], 3) if call["near_atm_volume"] else None,
+        "oi_change_ratio_put_call": round(put["near_atm_oi_change"] / call["near_atm_oi_change"], 3) if call["near_atm_oi_change"] else None,
+        "classification": "DESCRIPTIVE_ONLY",
+        "note": "Positioning/quality snapshot only; direction requires time-series price response and market confirmation.",
+    }
+
+
 @dataclass
 class OptionsIntelligence:
     def snapshot(self, symbol: str, *, wings: int = 2) -> dict[str, Any]:
@@ -126,6 +156,7 @@ class OptionsIntelligence:
             "expiry": expiry,
             "atm_strike": atm,
             "strikes": selected,
+            "response": _response_summary(selected, atm),
             "quality": {
                 "selection": "nearest-expiry ATM +/- 2 strikes",
                 "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks", "execution_score"],
