@@ -27,15 +27,28 @@ def _leg(row: dict[str, Any], side: str) -> dict[str, Any]:
     data = row.get(f"{side}_options") or {}
     market = data.get("market_data") or {}
     greeks = data.get("option_greeks") or {}
+    ltp = _num(market.get("ltp"))
+    bid = _num(market.get("bid_price"))
+    ask = _num(market.get("ask_price"))
+    oi = _num(market.get("oi"))
+    prev_oi = _num(market.get("prev_oi"))
+    spread = (ask - bid) if bid is not None and ask is not None else None
+    spread_pct = (spread / ltp * 100) if spread is not None and ltp and ltp > 0 else None
+    oi_change = (oi - prev_oi) if oi is not None and prev_oi is not None else None
+    oi_change_pct = (oi_change / prev_oi * 100) if oi_change is not None and prev_oi else None
     return {
         "instrument_key": data.get("instrument_key"),
-        "ltp": _num(market.get("ltp")),
+        "ltp": ltp,
         "volume": market.get("volume"),
-        "oi": market.get("oi"),
-        "prev_oi": market.get("prev_oi"),
-        "bid_price": _num(market.get("bid_price")),
+        "oi": oi,
+        "prev_oi": prev_oi,
+        "oi_change": oi_change,
+        "oi_change_pct": round(oi_change_pct, 2) if oi_change_pct is not None else None,
+        "bid_price": bid,
         "bid_qty": market.get("bid_qty"),
-        "ask_price": _num(market.get("ask_price")),
+        "ask_price": ask,
+        "spread": round(spread, 4) if spread is not None else None,
+        "spread_pct": round(spread_pct, 3) if spread_pct is not None else None,
         "ask_qty": market.get("ask_qty"),
         "iv": _num(greeks.get("iv")),
         "delta": _num(greeks.get("delta")),
@@ -72,11 +85,13 @@ class OptionsIntelligence:
             strike = _num(row.get("strike_price"))
             if strike is None:
                 continue
+            call = _leg(row, "call")
+            put = _leg(row, "put")
             parsed.append({
                 "strike": strike,
                 "pcr": _num(row.get("pcr")),
-                "call": _leg(row, "call"),
-                "put": _leg(row, "put"),
+                "call": call,
+                "put": put,
             })
         if not parsed or spot is None:
             return {
@@ -94,6 +109,10 @@ class OptionsIntelligence:
             "expiry": expiry,
             "atm_strike": atm,
             "strikes": selected,
+            "quality": {
+                "selection": "nearest-expiry ATM +/- 2 strikes",
+                "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks"],
+            },
             "status": "OK",
             "mode": "shadow",
         }
