@@ -8,16 +8,13 @@ from zoneinfo import ZoneInfo
 
 from .providers.options_intelligence import options_intelligence
 from .providers.upstox_master import instrument_master
+from .freshness import market_session
 
 IST = ZoneInfo("Asia/Kolkata")
 
 
 def _market_window(now: datetime) -> bool:
-    local = now.astimezone(IST)
-    if local.weekday() >= 5:
-        return False
-    minute = local.hour * 60 + local.minute
-    return 9 * 60 + 15 <= minute <= 15 * 60 + 30
+    return bool(market_session(now).get("market_open"))
 
 
 @dataclass
