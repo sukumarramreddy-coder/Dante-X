@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from .providers.credentials import UpstoxCredentials
 from .providers.upstox import UpstoxConfig
 from .providers.upstox_rest import UpstoxRestClient
+from .providers.upstox_live import nifty_live_probe
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
@@ -15,6 +16,13 @@ app = FastAPI(title="Dante X Engine", version="0.1.0")
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/providers/upstox/live")
+def upstox_live():
+    """Start/read the SHADOW NIFTY V3 heartbeat. No order capability."""
+    nifty_live_probe.start()
+    return nifty_live_probe.snapshot()
 
 
 @app.get("/v1/providers/upstox/diagnostic")
