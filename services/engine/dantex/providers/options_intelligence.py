@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from typing import Any
 from collections import deque
 from threading import Lock
@@ -117,9 +118,10 @@ class OptionsIntelligence:
 
     def _track(self, symbol: str, spot: float, atm: float, strikes: list[dict[str, Any]]) -> dict[str, Any]:
         now = time()
+        local_now = datetime.now(ZoneInfo("Asia/Kolkata"))
         atm_row = min(strikes, key=lambda x: abs(x["strike"] - atm))
         point = {
-            "ts": now, "spot": spot,
+            "ts": now, "iso_ts": local_now.isoformat(), "session_date": local_now.date().isoformat(), "spot": spot,
             "call_ltp": atm_row["call"].get("ltp"),
             "put_ltp": atm_row["put"].get("ltp"),
             "call_iv": atm_row["call"].get("iv"),
@@ -158,6 +160,8 @@ class OptionsIntelligence:
             "spot_change": round(spot_change, 2),
             "atm_call_change_pct": call_pct,
             "atm_put_change_pct": put_pct,
+            "last_sample_at": latest.get("iso_ts"),
+            "session_date": latest.get("session_date"),
             "note": "Live path evidence only; not trade authorization.",
         }
     def snapshot(self, symbol: str, *, wings: int = 2) -> dict[str, Any]:
