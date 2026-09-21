@@ -35,6 +35,30 @@ def test_full_pipeline_arms_quality_setup():
     assert r.status == Lifecycle.ARMED
 
 
+def test_pipeline_blocks_option_divergence():
+    from dantex.divergence import DivergenceState
+
+    r = evaluate_observation(
+        observation(), side=Side.BULLISH, trigger=101, cancel_level=97, target=108,
+        checkpoints=[], recent_prices=[98, 99], divergence=DivergenceState.UNDERLYING_ONLY,
+    )
+    assert r.status == Lifecycle.NO_EDGE
+    assert "option" in r.reason
+
+
+def test_pipeline_blocks_spent_move():
+    o = observation()
+    o = MarketObservation(
+        timestamp=o.timestamp, symbol=o.symbol, price=107.5, evidence=o.evidence,
+        quality=o.quality, data_quality=o.data_quality,
+    )
+    r = evaluate_observation(
+        o, side=Side.BULLISH, trigger=107, cancel_level=104, target=108,
+        checkpoints=[], recent_prices=[105, 106],
+    )
+    assert r.status == Lifecycle.NO_EDGE
+
+
 def test_full_pipeline_fails_closed_on_bad_data():
     r = evaluate_observation(
         observation(False), side=Side.BULLISH, trigger=101, cancel_level=97, target=108,
