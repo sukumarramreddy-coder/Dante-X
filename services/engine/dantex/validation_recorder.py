@@ -65,6 +65,30 @@ class ValidationRecorder:
         with self._lock,self._connect() as db:
             db.execute("UPDATE validation_samples SET outcome=?,labelled_at=? WHERE id=?",
               (json.dumps(deepcopy(outcome)),datetime.now(IST).isoformat(),sample_id))
+    def unlabelled(self,limit:int=200)->list[dict[str,Any]]:
+        with self._connect() as db:
+            rows=db.execute("""SELECT id,recorded_at,state,decision,market_snapshot
+              FROM validation_samples WHERE outcome IS NULL ORDER BY id ASC LIMIT ?""",(limit,)).fetchall()
+        out=[]
+        for rid,ts,state,decision,snap in rows:
+            out.append({"id":rid,"recorded_at":ts,"state":state,
+              "decision":json.loads(decision) if decision else None,
+              "market_snapshot":json.loads(snap) if snap else None})
+        return out
+    def recent(self,limit:int=100)->list[dict[str,Any]]:
+        with self._connect() as db:
+            rows=db.execute("""SELECT id,recorded_at,state,family_counts,readiness,decision,
+              market_snapshot,outcome,labelled_at FROM validation_samples ORDER BY id DESC LIMIT ?""",(limit,)).fetchall()
+        keys=("id","recorded_at","state","family_counts","readiness","decision","market_snapshot","outcome","labelled_at")
+        out=[]
+        for row in rows:
+            item=dict(zip(keys,row))
+            for k in ("family_counts","readiness","decision","market_snapshot","outcome"):
+                if item[k]:
+                    try:item[k]=json.loads(item[k])
+                    except Exception:pass
+            out.append(item)
+        return out
     def status(self)->dict[str,Any]:
         with self._connect() as db:
             count,first,last,labelled=db.execute("""SELECT COUNT(*),MIN(recorded_at),
