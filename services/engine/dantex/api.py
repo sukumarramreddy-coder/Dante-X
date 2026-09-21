@@ -218,6 +218,12 @@ def option_duel():
     }
 
 
+@app.get("/v1/validation/recent")
+def validation_recent(limit: int = 100):
+    limit=max(1,min(limit,500))
+    return {"samples":validation_recorder.recent(limit),"mode":"shadow"}
+
+
 @app.get("/v1/validation/status")
 def validation_status():
     # Record a diagnostic heartbeat so this endpoint proves SQLite writes
