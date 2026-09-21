@@ -40,3 +40,15 @@ def gate(*, source: str, timestamp: str | None = None,
     return {"source":source,"eligible":eligible,
             "state":"LIVE" if eligible else "STALE_CONTEXT",
             "session":session,"reasons":reasons}
+
+def system_readiness(freshness: dict[str, Any], families: dict[str, Any]) -> dict[str, Any]:
+    """Hard authorization precondition: stale/unproven required live inputs block GO."""
+    required=("nifty_structure","banknifty_structure","nifty_options","banknifty_options",
+              "breadth","sector_leadership","volatility")
+    blocked=[name for name in required if not (freshness.get(name) or {}).get("eligible",False)]
+    directional=[k for k,v in families.items() if v.get("state") in {"CE","PE","CONFLICT"}]
+    ready=not blocked
+    return {"live_evidence_ready":ready,"blocked_sources":blocked,
+            "directional_families":directional,
+            "authorization_ceiling":"SHADOW_ONLY" if ready else "NO_AUTHORIZATION",
+            "note":"Freshness readiness is necessary but never sufficient for ARMED/GO."}
