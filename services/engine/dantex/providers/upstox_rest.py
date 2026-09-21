@@ -20,7 +20,7 @@ class UpstoxRestClient:
                 "Authorization": "Bearer " + self.config.access_token,
             },
         )
-        with urlopen(request, timeout=10) as response:  # noqa: S310 - fixed trusted API base
+        with urlopen(request, timeout=10) as response:
             return json.loads(response.read())
 
     def historical_candles(
