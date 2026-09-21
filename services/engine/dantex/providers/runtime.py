@@ -13,7 +13,7 @@ class ProviderRuntime:
     health: FeedHealth
 
     @classmethod
-    def offline(cls) -> "ProviderRuntime":
+    def offline(cls) -> ProviderRuntime:
         now = datetime.now(timezone.utc)
         return cls(ProviderStatus(ProviderState.OFFLINE, now, "not connected"), FeedHealth())
 
