@@ -8,6 +8,8 @@ from .providers.credentials import UpstoxCredentials
 from .providers.upstox import UpstoxConfig
 from .providers.upstox_rest import UpstoxRestClient
 from .providers.upstox_live import nifty_live_probe
+from .providers.upstox_core_live import core_live_feed
+from .providers.upstox_master import instrument_master
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
@@ -16,6 +18,21 @@ app = FastAPI(title="Dante X Engine", version="0.1.0")
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/market/state")
+def market_state():
+    """SHADOW core market state for NIFTY/BANKNIFTY plus instrument-master health."""
+    core_live_feed.start()
+    instrument_master.refresh_async()
+    return {
+        "feed": core_live_feed.snapshot(),
+        "instrument_master": {
+            "nifty": instrument_master.index_derivatives("NIFTY"),
+            "banknifty": instrument_master.index_derivatives("BANKNIFTY"),
+        },
+        "mode": "shadow",
+    }
 
 
 @app.get("/v1/providers/upstox/live")
