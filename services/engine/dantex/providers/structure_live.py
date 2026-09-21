@@ -42,11 +42,14 @@ def _atr(rows: list[dict[str, Any]], period: int = 14) -> float | None:
     return round(sum(tr) / period, 2)
 
 
-def _vwap(rows: list[dict[str, Any]]) -> float | None:
+def _vwap(rows: list[dict[str, Any]]) -> tuple[float | None, str]:
+    # NSE index candles commonly have no meaningful traded volume. Never fake
+    # VWAP from zero-volume index bars; expose that limitation explicitly.
     denom = sum(x["volume"] for x in rows)
     if denom <= 0:
-        return None
-    return round(sum(((x["high"]+x["low"]+x["close"])/3) * x["volume"] for x in rows) / denom, 2)
+        return None, "UNAVAILABLE_NO_INDEX_VOLUME"
+    value = sum(((x["high"]+x["low"]+x["close"])/3) * x["volume"] for x in rows) / denom
+    return round(value, 2), "OK"
 
 
 def _prior_day(client: UpstoxRestClient, key: str, today: str) -> dict[str, float] | None:
@@ -73,7 +76,7 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
     closes = [x["close"] for x in rows]
     last = rows[-1]
     e9, e20, e50 = _ema(closes, 9), _ema(closes, 20), _ema(closes, 50)
-    session_vwap = _vwap(rows)
+    session_vwap, vwap_status = _vwap(rows)
     opening = rows[:15]
     or_high = max((x["high"] for x in opening), default=None)
     or_low = min((x["low"] for x in opening), default=None)
@@ -108,13 +111,13 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
         prior = None
 
     location = {
-        "vs_vwap": "ABOVE" if session_vwap is not None and last["close"] > session_vwap else "BELOW" if session_vwap is not None and last["close"] < session_vwap else "AT",
+        "vs_vwap": None if session_vwap is None else ("ABOVE" if last["close"] > session_vwap else "BELOW" if last["close"] < session_vwap else "AT"),
         "vs_prior_high": None if not prior else ("ABOVE" if last["close"] > prior["high"] else "BELOW"),
         "vs_prior_low": None if not prior else ("ABOVE" if last["close"] > prior["low"] else "BELOW"),
     }
     return {
         "symbol": symbol, "instrument_key": key, "last": last["close"], "last_candle_ts": last["ts"],
-        "candles": len(rows), "vwap": session_vwap, "ema9": round(e9,2) if e9 else None,
+        "candles": len(rows), "vwap": session_vwap, "vwap_status": vwap_status, "ema9": round(e9,2) if e9 else None,
         "ema20": round(e20,2) if e20 else None, "ema50": round(e50,2) if e50 else None,
         "atr14": _atr(rows), "opening_range": {"high": or_high, "low": or_low},
         "prior_day": prior, "trend": trend, "opening_range_state": breakout,
