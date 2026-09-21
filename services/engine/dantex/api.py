@@ -12,14 +12,30 @@ from .providers.upstox_core_live import core_live_feed
 from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
+from .observation_loop import observation_loop
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
 
+@app.on_event("startup")
+def start_shadow_observers():
+    """Start read-only background observers with the service process."""
+    core_live_feed.start()
+    instrument_master.refresh_async()
+    observation_loop.start()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/observation/status")
+def observation_status():
+    """Background SHADOW sampler health."""
+    observation_loop.start()
+    return observation_loop.snapshot()
 
 
 @app.get("/v1/duel")
