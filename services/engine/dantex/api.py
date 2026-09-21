@@ -11,6 +11,7 @@ from .providers.upstox_live import nifty_live_probe
 from .providers.upstox_core_live import core_live_feed
 from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
+from .option_duel import duel
 from .radar import RadarInputs, opportunity_score
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
@@ -19,6 +20,17 @@ app = FastAPI(title="Dante X Engine", version="0.1.0")
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dante-x-engine"}
+
+
+@app.get("/v1/duel")
+def option_duel():
+    """SHADOW CE-vs-PE evidence duel across NIFTY and BANKNIFTY."""
+    instrument_master.refresh_async()
+    nifty = options_intelligence.snapshot("NIFTY")
+    bank = options_intelligence.snapshot("BANKNIFTY")
+    if nifty.get("status") != "OK" or bank.get("status") != "OK":
+        return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow"}
+    return {"duel": duel(nifty, bank), "nifty": nifty["path_response"], "banknifty": bank["path_response"], "mode": "shadow"}
 
 
 @app.get("/v1/options/{symbol}")
