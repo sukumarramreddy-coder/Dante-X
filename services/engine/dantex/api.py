@@ -63,6 +63,7 @@ def option_duel():
     bank_structure = structure_snapshot("BANKNIFTY")
     return {
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
+        "evidence_families": evidence_families(nifty, bank, nifty_structure, bank_structure),
         "nifty": {"path": nifty["path_response"], "structure": nifty_structure},
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
