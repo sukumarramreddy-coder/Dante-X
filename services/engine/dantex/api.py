@@ -14,6 +14,7 @@ from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
 from .evidence_families import evidence_families
 from .momentum import momentum_family, cross_index_momentum
+from .breadth import breadth_family, NIFTY_BREADTH_KEYS
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
@@ -69,6 +70,28 @@ def option_duel():
     families["families"]["nifty_momentum"] = n_momentum
     families["families"]["banknifty_momentum"] = b_momentum
     families["families"]["cross_index_momentum"] = cross_index_momentum(n_momentum, b_momentum)
+    # Breadth is fetched independently from actual liquid constituents. Fail
+    # closed on provider/shape errors; never turn missing breadth into a vote.
+    try:
+        client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))
+        payload = client.full_market_quotes(NIFTY_BREADTH_KEYS)
+        raw = (payload.get("data") or {})
+        quotes = []
+        for item in raw.values() if isinstance(raw, dict) else []:
+            if not isinstance(item, dict):
+                continue
+            ohlc = item.get("ohlc") or {}
+            quotes.append({
+                "ltp": item.get("last_price") or item.get("ltp"),
+                "prev_close": ohlc.get("close") or item.get("prev_close"),
+            })
+        families["families"]["breadth"] = breadth_family(quotes)
+    except Exception as exc:
+        families["families"]["breadth"] = {
+            "state":"UNAVAILABLE","ce":0.0,"pe":0.0,
+            "quality":{"usable":0,"required":10},
+            "reasons":[f"breadth provider unavailable: {type(exc).__name__}"],
+        }
     # Recompute consensus after runtime families are attached. DATA_QUALITY_BLOCK
     # and NEUTRAL families deliberately have zero directional voting power.
     directional = [v for v in families["families"].values() if v.get("state") in {"CE", "PE", "CONFLICT"}]
