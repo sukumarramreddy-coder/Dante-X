@@ -54,3 +54,56 @@ def breadth_family(quotes: list[dict[str, Any]]) -> dict[str, Any]:
                 "broad constituent participation down" if state=="PE" else
                 "constituent participation mixed"
             ]}
+
+
+# Sector indices are an independent participation/leadership diagnostic. They
+# are deliberately explicit and read-only; missing provider keys fail closed.
+SECTOR_INDEX_KEYS = {
+    "BANK": "NSE_INDEX|Nifty Bank",
+    "IT": "NSE_INDEX|Nifty IT",
+    "AUTO": "NSE_INDEX|Nifty Auto",
+    "FMCG": "NSE_INDEX|Nifty FMCG",
+    "METAL": "NSE_INDEX|Nifty Metal",
+    "PHARMA": "NSE_INDEX|Nifty Pharma",
+    "REALTY": "NSE_INDEX|Nifty Realty",
+    "ENERGY": "NSE_INDEX|Nifty Energy",
+}
+
+def sector_leadership_family(quotes: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Cross-sector leadership from day change versus previous close.
+
+    This measures whether risk appetite is broad or defensive/mixed. It is
+    diagnostic until freshness is independently proven by the caller.
+    """
+    changes: dict[str, float] = {}
+    for name, q in quotes.items():
+        ltp=q.get("ltp"); prev=q.get("prev_close")
+        if isinstance(ltp,(int,float)) and isinstance(prev,(int,float)) and prev>0:
+            changes[name]=(ltp-prev)/prev*100
+    if len(changes) < 5:
+        return {"state":"UNAVAILABLE","ce":0.0,"pe":0.0,
+                "quality":{"usable":len(changes),"required":5},
+                "reasons":["insufficient sector-index quotes"]}
+    vals=list(changes.values())
+    if max(abs(x) for x in vals) < .01:
+        return {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                "metrics":{"changes_pct":{k:round(v,3) for k,v in changes.items()}},
+                "quality":{"usable":len(changes),"freshness":"NON_MOVING_SNAPSHOT"},
+                "reasons":["sector indices are fully flat; leadership blocked outside live price discovery"]}
+    adv=sum(x>.05 for x in vals); dec=sum(x<-.05 for x in vals)
+    ordered=sorted(changes.items(), key=lambda kv: kv[1], reverse=True)
+    balance=(adv-dec)/len(vals)
+    state="NEUTRAL"; ce=pe=0.0
+    if balance >= .5:
+        state="CE"; ce=1.5
+    elif balance <= -.5:
+        state="PE"; pe=1.5
+    return {"state":state,"ce":ce,"pe":pe,
+            "metrics":{"advancing_sectors":adv,"declining_sectors":dec,
+                       "participation_balance":round(balance,3),
+                       "leaders":[[k,round(v,3)] for k,v in ordered[:3]],
+                       "laggards":[[k,round(v,3)] for k,v in ordered[-3:]]},
+            "quality":{"usable":len(changes),"required":5},
+            "reasons":["broad sector leadership positive" if state=="CE" else
+                       "broad sector leadership negative" if state=="PE" else
+                       "sector leadership mixed"]}
