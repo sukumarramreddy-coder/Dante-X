@@ -12,6 +12,7 @@ from .providers.upstox_core_live import core_live_feed
 from .providers.upstox_master import instrument_master
 from .providers.options_intelligence import options_intelligence
 from .option_duel import duel
+from .evidence_families import evidence_families
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
