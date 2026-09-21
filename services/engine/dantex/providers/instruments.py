@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 
 
@@ -19,9 +19,15 @@ class Instrument:
 
 
 def _date(value: Any) -> date | None:
-    if not value:
+    if value in (None, ""):
         return None
-    return date.fromisoformat(str(value)[:10])
+    # Upstox instrument masters can encode expiry as epoch milliseconds.
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(float(value) / 1000, tz=timezone.utc).date()
+    text = str(value).strip()
+    if text.isdigit():
+        return datetime.fromtimestamp(int(text) / 1000, tz=timezone.utc).date()
+    return date.fromisoformat(text[:10])
 
 
 def normalize_instrument(row: dict[str, Any]) -> Instrument:
