@@ -19,6 +19,8 @@ from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
 from .freshness import gate as freshness_gate, market_session, system_readiness
+from .derivatives import derivatives_positioning_family
+from .decision import shadow_decision
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
@@ -183,13 +185,24 @@ def option_duel():
             "quality":{"usable":False},
             "reasons":[f"India VIX provider unavailable: {type(exc).__name__}"],
         }
+    # Derivatives are one consolidated family: OI/PCR/IV never become separate votes.
+    if n_options_gate["eligible"] and b_options_gate["eligible"]:
+        families["families"]["derivatives_positioning"] = derivatives_positioning_family(nifty, bank)
+    else:
+        families["families"]["derivatives_positioning"] = {
+            "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+            "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+            "reasons":["derivatives require fresh option-chain observations"],
+        }
     # One vote per independent family; correlated per-index observations are
     # synthesized before consensus.
     consensus = recompute_consensus(families["families"])
     families["state"] = consensus["state"]
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
+    decision = shadow_decision(families, families["readiness"], nifty)
     return {
+        "decision": decision,
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
         "evidence_families": families,
         "nifty": {"path": nifty["path_response"], "structure": nifty_structure},
