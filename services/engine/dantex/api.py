@@ -41,6 +41,17 @@ def upstox_diagnostic():
         quote_payload = client.full_market_quote("NSE_INDEX|Nifty 50")
         quote_ok = str(quote_payload.get("status", "")).lower() == "success"
     except HTTPError as exc:
+        upstox_error_code = None
+        upstox_error_message = None
+        try:
+            import json
+            body = json.loads(exc.read().decode("utf-8", errors="replace"))
+            errors = body.get("errors") or []
+            if errors and isinstance(errors[0], dict):
+                upstox_error_code = errors[0].get("errorCode") or errors[0].get("error_code")
+                upstox_error_message = errors[0].get("message")
+        except Exception:
+            pass
         return {
             "provider": "upstox",
             "configured": True,
@@ -49,6 +60,8 @@ def upstox_diagnostic():
             "market_feed_authorized": False,
             "mode": "shadow",
             "http_status": exc.code,
+            "upstox_error_code": upstox_error_code,
+            "upstox_error_message": upstox_error_message,
             "detail": "Upstox rejected the read-only market-data probe",
         }
     except (URLError, TimeoutError):
