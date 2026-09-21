@@ -202,7 +202,12 @@ def option_duel():
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
-    validation_recorder.record_duel(families, decision)
+    validation_recorder.record_duel(families, decision, {
+        "nifty_spot": nifty.get("spot"), "banknifty_spot": bank.get("spot"),
+        "nifty_expiry": nifty.get("expiry"), "banknifty_expiry": bank.get("expiry"),
+        "nifty_structure": {k:nifty_structure.get(k) for k in ("last","trend","opening_range_state","session_date","freshness")},
+        "banknifty_structure": {k:bank_structure.get(k) for k in ("last","trend","opening_range_state","session_date","freshness")},
+    })
     return {
         "decision": decision,
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
