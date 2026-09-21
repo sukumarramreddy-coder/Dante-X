@@ -107,3 +107,34 @@ def sector_leadership_family(quotes: dict[str, dict[str, Any]]) -> dict[str, Any
             "reasons":["broad sector leadership positive" if state=="CE" else
                        "broad sector leadership negative" if state=="PE" else
                        "sector leadership mixed"]}
+
+
+INDIA_VIX_KEY = "NSE_INDEX|India VIX"
+
+def volatility_family(vix_quote: dict[str, Any]) -> dict[str, Any]:
+    """India VIX regime/context family.
+
+    VIX is not intrinsically bullish or bearish. This family therefore does
+    not cast CE/PE votes from the VIX level alone; it reports volatility regime
+    and change for downstream risk/execution logic.
+    """
+    ltp=vix_quote.get("ltp"); prev=vix_quote.get("prev_close")
+    if not isinstance(ltp,(int,float)) or not isinstance(prev,(int,float)) or prev<=0:
+        return {"state":"UNAVAILABLE","ce":0.0,"pe":0.0,
+                "quality":{"usable":False},"reasons":["India VIX quote unavailable"]}
+    change=(ltp-prev)/prev*100
+    if abs(change) < .001 and vix_quote.get("non_moving"):
+        return {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                "metrics":{"vix":round(ltp,3),"change_pct":round(change,3)},
+                "quality":{"freshness":"NON_MOVING_SNAPSHOT"},
+                "reasons":["India VIX snapshot not proven live"]}
+    if ltp < 12: regime="LOW"
+    elif ltp < 16: regime="NORMAL"
+    elif ltp < 22: regime="ELEVATED"
+    else: regime="HIGH"
+    impulse="EXPANDING" if change>=5 else "COMPRESSING" if change<=-5 else "STABLE"
+    return {"state":"NEUTRAL","ce":0.0,"pe":0.0,
+            "metrics":{"vix":round(ltp,3),"change_pct":round(change,3),
+                       "regime":regime,"impulse":impulse},
+            "quality":{"usable":True},
+            "reasons":[f"India VIX {regime.lower()} regime; volatility {impulse.lower()}"]}
