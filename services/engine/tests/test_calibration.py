@@ -3,7 +3,7 @@ from dantex.calibration import CalibrationSample, calibration_bands
 
 def test_small_sample_never_becomes_publishable_probability():
     samples = [CalibrationSample(72, True) for _ in range(20)]
-    band = [b for b in calibration_bands(samples) if b.lower == 70][0]
+    band = next(b for b in calibration_bands(samples) if b.lower == 70)
     assert band.observed_rate == 100
     assert not band.publishable
 
