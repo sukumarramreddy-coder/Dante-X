@@ -3,7 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from threading import Lock, Thread
 from urllib.request import Request, urlopen
 
@@ -20,9 +20,11 @@ class InstrumentMaster:
     _loading: bool = field(default=False, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
 
-    def refresh_async(self) -> None:
+    def refresh_async(self, *, max_age_hours: int = 12) -> None:
         with self._lock:
             if self._loading:
+                return
+            if self.loaded_at and datetime.now(timezone.utc) - self.loaded_at < timedelta(hours=max_age_hours):
                 return
             self._loading = True
         Thread(target=self._refresh, name="upstox-instrument-master", daemon=True).start()
