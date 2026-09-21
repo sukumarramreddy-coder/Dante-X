@@ -18,6 +18,7 @@ from .breadth import breadth_family, sector_leadership_family, volatility_family
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
 from .radar import RadarInputs, opportunity_score
+from .freshness import gate as freshness_gate, market_session
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
@@ -65,15 +66,21 @@ def option_duel():
     nifty_structure = structure_snapshot("NIFTY")
     bank_structure = structure_snapshot("BANKNIFTY")
     families = evidence_families(nifty, bank, nifty_structure, bank_structure)
+    session = market_session()
+    families["freshness"] = {"session": session}
     # Momentum is a live-session family. Historical fallback candles remain
     # visible as context but must never be reinterpreted as current velocity.
-    if nifty_structure.get("evidence_eligible") is False:
+    n_structure_gate = freshness_gate(source="NIFTY_STRUCTURE", timestamp=nifty_structure.get("last_candle_ts"), session_date=nifty_structure.get("session_date"), provider_fresh=nifty_structure.get("evidence_eligible"))
+    b_structure_gate = freshness_gate(source="BANKNIFTY_STRUCTURE", timestamp=bank_structure.get("last_candle_ts"), session_date=bank_structure.get("session_date"), provider_fresh=bank_structure.get("evidence_eligible"))
+    families["freshness"]["nifty_structure"] = n_structure_gate
+    families["freshness"]["banknifty_structure"] = b_structure_gate
+    if not n_structure_gate["eligible"]:
         n_momentum = {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
                       "quality":{"freshness":nifty_structure.get("freshness"),"session_date":nifty_structure.get("session_date")},
                       "reasons":["historical structure candles blocked from live momentum"]}
     else:
         n_momentum = momentum_family(nifty_structure.get("recent_candles") or [])
-    if bank_structure.get("evidence_eligible") is False:
+    if not b_structure_gate["eligible"]:
         b_momentum = {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
                       "quality":{"freshness":bank_structure.get("freshness"),"session_date":bank_structure.get("session_date")},
                       "reasons":["historical structure candles blocked from live momentum"]}
@@ -121,7 +128,14 @@ def option_duel():
             vix_ohlc = vix_item.get("ohlc") or {}
             vix_quote = {"ltp":vix_item.get("last_price") or vix_item.get("ltp"),
                          "prev_close":vix_ohlc.get("close") or vix_item.get("prev_close")}
-            families["families"]["volatility"] = volatility_family(vix_quote)
+            vix_gate = freshness_gate(source="INDIA_VIX", provider_fresh=None)
+            families["freshness"]["volatility"] = vix_gate
+            families["families"]["volatility"] = volatility_family(vix_quote) if vix_gate["eligible"] else {
+                "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                "metrics":{"vix":vix_quote.get("ltp")},
+                "quality":{"freshness":"CENTRAL_GATE_BLOCKED"},
+                "reasons":vix_gate["reasons"],
+            }
         else:
             families["families"]["volatility"] = volatility_family({})
     except Exception as exc:
