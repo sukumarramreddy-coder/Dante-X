@@ -65,8 +65,20 @@ def option_duel():
     nifty_structure = structure_snapshot("NIFTY")
     bank_structure = structure_snapshot("BANKNIFTY")
     families = evidence_families(nifty, bank, nifty_structure, bank_structure)
-    n_momentum = momentum_family(nifty_structure.get("recent_candles") or [])
-    b_momentum = momentum_family(bank_structure.get("recent_candles") or [])
+    # Momentum is a live-session family. Historical fallback candles remain
+    # visible as context but must never be reinterpreted as current velocity.
+    if nifty_structure.get("evidence_eligible") is False:
+        n_momentum = {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                      "quality":{"freshness":nifty_structure.get("freshness"),"session_date":nifty_structure.get("session_date")},
+                      "reasons":["historical structure candles blocked from live momentum"]}
+    else:
+        n_momentum = momentum_family(nifty_structure.get("recent_candles") or [])
+    if bank_structure.get("evidence_eligible") is False:
+        b_momentum = {"state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
+                      "quality":{"freshness":bank_structure.get("freshness"),"session_date":bank_structure.get("session_date")},
+                      "reasons":["historical structure candles blocked from live momentum"]}
+    else:
+        b_momentum = momentum_family(bank_structure.get("recent_candles") or [])
     families["families"]["nifty_momentum"] = n_momentum
     families["families"]["banknifty_momentum"] = b_momentum
     families["families"]["cross_index_momentum"] = cross_index_momentum(n_momentum, b_momentum)
