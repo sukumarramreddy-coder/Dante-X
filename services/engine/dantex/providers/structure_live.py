@@ -70,8 +70,33 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
     key = KEYS[symbol]
     client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))
     rows = _candles(client.intraday_candles(key, unit="minutes", interval=1))
+    now = datetime.now(IST)
+    source = "INTRADAY"
+    # Around midnight the provider's intraday endpoint can legitimately be empty
+    # for the new calendar date. Recover the most recent completed trading
+    # session for descriptive context, but mark it ineligible for live voting.
     if not rows:
-        return {"symbol": symbol, "status": "NO_INTRADAY_DATA", "mode": "shadow"}
+        from datetime import timedelta
+        for days_back in range(1, 8):
+            d = (now.date() - timedelta(days=days_back)).isoformat()
+            try:
+                candidate = _candles(client.historical_candles(
+                    key, unit="minutes", interval=1, to_date=d, from_date=d
+                ))
+            except Exception:
+                candidate = []
+            if candidate:
+                rows = candidate
+                source = "HISTORICAL_FALLBACK"
+                break
+    if not rows:
+        return {"symbol": symbol, "status": "NO_INTRADAY_DATA",
+                "evidence_eligible": False, "freshness":"UNAVAILABLE", "mode":"shadow"}
+
+    session_date = str(rows[-1]["ts"])[:10]
+    today = now.date().isoformat()
+    evidence_eligible = source == "INTRADAY" and session_date == today
+    freshness = "CURRENT_SESSION" if evidence_eligible else "HISTORICAL_SESSION"
 
     closes = [x["close"] for x in rows]
     last = rows[-1]
@@ -92,7 +117,6 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
     elif or_low is not None and last["close"] < or_low:
         breakout = "BELOW_OPENING_RANGE"
 
-    now = datetime.now(IST)
     prior = None
     try:
         # Fetch a small historical window so previous trading day is available.
@@ -117,6 +141,8 @@ def structure_snapshot(symbol: str) -> dict[str, Any]:
     }
     return {
         "symbol": symbol, "instrument_key": key, "last": last["close"], "last_candle_ts": last["ts"],
+        "data_source": source, "session_date": session_date, "freshness": freshness,
+        "evidence_eligible": evidence_eligible,
         "recent_candles": rows[-60:],
         "candles": len(rows), "vwap": session_vwap, "vwap_status": vwap_status, "ema9": round(e9,2) if e9 else None,
         "ema20": round(e20,2) if e20 else None, "ema50": round(e50,2) if e50 else None,
