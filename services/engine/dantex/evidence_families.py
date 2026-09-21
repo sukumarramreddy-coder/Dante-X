@@ -47,25 +47,42 @@ def cross_index_family(nifty: dict[str, Any], bank: dict[str, Any]) -> dict[str,
     if not reasons: reasons.append("cross-index baseline unavailable")
     return {"state":_direction(ce,pe),"ce":ce,"pe":pe,"reasons":reasons}
 
+def _synth_family(name: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    """Collapse correlated NIFTY/BANKNIFTY observations into one family vote."""
+    ls, rs = left.get("state"), right.get("state")
+    blocked = {"UNAVAILABLE", "STALE_CONTEXT", "DATA_QUALITY_BLOCK"}
+    active = [x for x in (left, right) if x.get("state") not in blocked]
+    reasons = [f"NIFTY: {r}" for r in left.get("reasons", [])] + [f"BANKNIFTY: {r}" for r in right.get("reasons", [])]
+    if not active:
+        state = "STALE_CONTEXT" if "STALE_CONTEXT" in {ls, rs} else "UNAVAILABLE"
+        return {"state":state,"ce":0.0,"pe":0.0,"components":{"nifty":ls,"banknifty":rs},"reasons":reasons}
+    dirs = {x.get("state") for x in active if x.get("state") in {"CE","PE","CONFLICT"}}
+    if "CONFLICT" in dirs or ("CE" in dirs and "PE" in dirs):
+        return {"state":"CONFLICT","ce":0.0,"pe":0.0,"components":{"nifty":ls,"banknifty":rs},"reasons":reasons}
+    if dirs == {"CE"}:
+        return {"state":"CE","ce":max(x.get("ce",0.0) for x in active),"pe":0.0,"components":{"nifty":ls,"banknifty":rs},"reasons":reasons}
+    if dirs == {"PE"}:
+        return {"state":"PE","ce":0.0,"pe":max(x.get("pe",0.0) for x in active),"components":{"nifty":ls,"banknifty":rs},"reasons":reasons}
+    return {"state":"NEUTRAL","ce":0.0,"pe":0.0,"components":{"nifty":ls,"banknifty":rs},"reasons":reasons}
+
+def recompute_consensus(families: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    directional=[v for v in families.values() if v.get("state") in {"CE","PE","CONFLICT"}]
+    c=sum(v.get("state")=="CE" for v in directional); p=sum(v.get("state")=="PE" for v in directional)
+    x=sum(v.get("state")=="CONFLICT" for v in directional)
+    state="CONFLICT" if x or (c and p) else "CE_EVIDENCE" if c>=2 else "PE_EVIDENCE" if p>=2 else "NO_EDGE"
+    return {"state":state,"family_counts":{"ce":c,"pe":p,"conflict":x,"directional":len(directional)}}
+
 def evidence_families(nifty: dict[str, Any], bank: dict[str, Any],
                       nifty_structure: dict[str, Any] | None,
                       bank_structure: dict[str, Any] | None) -> dict[str, Any]:
+    ns=structure_family(nifty_structure); bs=structure_family(bank_structure)
+    no=options_family(nifty); bo=options_family(bank)
     families={
-      "nifty_structure":structure_family(nifty_structure),
-      "banknifty_structure":structure_family(bank_structure),
-      "nifty_options":options_family(nifty),
-      "banknifty_options":options_family(bank),
+      "structure_location":_synth_family("structure_location",ns,bs),
+      "options_response":_synth_family("options_response",no,bo),
       "cross_index":cross_index_family(nifty,bank),
     }
-    directional=[v for v in families.values() if v["state"] in {"CE","PE","CONFLICT"}]
-    c=sum(v["state"]=="CE" for v in directional); p=sum(v["state"]=="PE" for v in directional)
-    x=sum(v["state"]=="CONFLICT" for v in directional)
-    state="NO_EDGE"
-    if x: state="CONFLICT"
-    elif c>=2 and p==0: state="CE_EVIDENCE"
-    elif p>=2 and c==0: state="PE_EVIDENCE"
-    elif c and p: state="CONFLICT"
-    return {"state":state,"families":families,
-      "family_counts":{"ce":c,"pe":p,"conflict":x,"directional":len(directional)},
-      "authorization":"NONE",
-      "note":"Independent-family consensus only; not calibrated probability or trade authorization."}
+    consensus=recompute_consensus(families)
+    return {"state":consensus["state"],"families":families,
+      "family_counts":consensus["family_counts"],"authorization":"NONE",
+      "note":"Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization."}
