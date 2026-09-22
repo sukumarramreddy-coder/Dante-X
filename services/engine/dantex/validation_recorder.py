@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json, os, sqlite3, urllib.request
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from zoneinfo import ZoneInfo
@@ -13,7 +13,13 @@ DEFAULT_DB=os.getenv("DANTEX_VALIDATION_DB","/tmp/dantex-validation.sqlite3")
 class ValidationRecorder:
     """SQLite SHADOW dataset for evidence, decisions and later outcome labels."""
     def __init__(self,path:str=DEFAULT_DB):
-        self.path=path; self._lock=Lock(); Path(path).parent.mkdir(parents=True,exist_ok=True); self._init()
+        self.path=path
+        self._lock=Lock()
+        self.last_external_write_at: datetime | None = None
+        self.last_external_error: str | None = None
+        self.external_write_failures = 0
+        Path(path).parent.mkdir(parents=True,exist_ok=True)
+        self._init()
     def _connect(self):
         db=sqlite3.connect(self.path,timeout=10)
         db.execute("PRAGMA journal_mode=WAL"); db.execute("PRAGMA synchronous=NORMAL")
@@ -53,12 +59,16 @@ class ValidationRecorder:
         # Local SQLite is always retained as a fallback; configured external
         # storage is the durable copy when Render's filesystem is ephemeral.
         try:
-            self._external_write({"recorded_at":now,"state":families.get("state"),
+            wrote = self._external_write({"recorded_at":now,"state":families.get("state"),
               "family_counts":deepcopy(families.get("family_counts")),
               "readiness":deepcopy(families.get("readiness")),
               "decision":deepcopy(decision),"market_snapshot":deepcopy(market_snapshot),"source_sample_id":sample_id})
-        except Exception:
-            pass
+            if wrote:
+                self.last_external_write_at = datetime.now(timezone.utc)
+                self.last_external_error = None
+        except (OSError, RuntimeError, TimeoutError) as exc:
+            self.external_write_failures += 1
+            self.last_external_error = f"{type(exc).__name__}: {str(exc)[:180]}"
         return sample_id
     def record(self,payload:dict[str,Any])->None:self.record_duel(payload,None)
     def label(self,sample_id:int,outcome:dict[str,Any])->None:
@@ -99,6 +109,9 @@ class ValidationRecorder:
         return {"samples":count,"labelled_samples":labelled or 0,"first":first,"last":last,
           "persistent":persistent,"storage":"external+sqlite" if external else "sqlite",
           "path":"external-rest" if external else (self.path if persistent else "ephemeral-runtime-disk"),"mode":"shadow",
+          "external_write":{"last_success_at":self.last_external_write_at.isoformat() if self.last_external_write_at else None,
+                            "last_error":self.last_external_error,
+                            "failures":self.external_write_failures},
           "calibration_ready":False,
           "note":"Outcome-capable SHADOW dataset. Statistical calibration remains disabled until sufficient labelled out-of-sample history exists."}
 
