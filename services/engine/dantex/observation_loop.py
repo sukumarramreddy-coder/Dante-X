@@ -57,6 +57,33 @@ class ObservationLoop:
                         raise RuntimeError(f"{symbol}:{snap.get('status')}")
                     snapshots[symbol] = snap
                 self._outcomes.observe(snapshots)
+                # Persist every successful observation, not only /v1/duel calls.
+                # This makes the deployed shadow observer useful unattended:
+                # market snapshots continue flowing to the configured durable
+                # validation sink while the market is open.
+                validation_recorder.record_duel(
+                    {
+                        "state": "OBSERVATION",
+                        "family_counts": {},
+                        "readiness": {
+                            "observer": True,
+                            "nifty": snapshots["NIFTY"].get("status") == "OK",
+                            "banknifty": snapshots["BANKNIFTY"].get("status") == "OK",
+                        },
+                    },
+                    {
+                        "status": "MARKET_OBSERVATION",
+                        "authorization": "NONE",
+                    },
+                    {
+                        "nifty_spot": snapshots["NIFTY"].get("spot"),
+                        "banknifty_spot": snapshots["BANKNIFTY"].get("spot"),
+                        "nifty_expiry": snapshots["NIFTY"].get("expiry"),
+                        "banknifty_expiry": snapshots["BANKNIFTY"].get("expiry"),
+                        "nifty_path": snapshots["NIFTY"].get("path_response"),
+                        "banknifty_path": snapshots["BANKNIFTY"].get("path_response"),
+                    },
+                )
                 with self._lock:
                     self.samples += 1
                     self.last_sample_at = datetime.now(IST)
