@@ -16,6 +16,7 @@ class ValidationRecorder:
         self.path=path
         self._lock=Lock()
         self.last_external_write_at: datetime | None = None
+        self.last_external_attempt_at: datetime | None = None
         self.last_external_error: str | None = None
         self.external_write_failures = 0
         Path(path).parent.mkdir(parents=True,exist_ok=True)
@@ -40,6 +41,7 @@ class ValidationRecorder:
         url=os.getenv("DANTEX_VALIDATION_REST_URL","").rstrip("/")
         key=os.getenv("DANTEX_VALIDATION_REST_KEY","")
         if not url or not key:return False
+        self.last_external_attempt_at = datetime.now(timezone.utc)
         req=urllib.request.Request(url,data=json.dumps(row).encode(),method="POST",
             headers={"Content-Type":"application/json","apikey":key,
                      "Authorization":f"Bearer {key}","Prefer":"return=minimal"})
@@ -107,9 +109,11 @@ class ValidationRecorder:
         external=bool(os.getenv("DANTEX_VALIDATION_REST_URL") and os.getenv("DANTEX_VALIDATION_REST_KEY"))
         persistent=external or not self.path.startswith("/tmp/")
         return {"samples":count,"labelled_samples":labelled or 0,"first":first,"last":last,
-          "persistent":persistent,"storage":"external+sqlite" if external else "sqlite",
+          "persistent":persistent,"external_configured":external,
+          "storage":"external+sqlite" if external else "sqlite",
           "path":"external-rest" if external else (self.path if persistent else "ephemeral-runtime-disk"),"mode":"shadow",
           "external_write":{"last_success_at":self.last_external_write_at.isoformat() if self.last_external_write_at else None,
+                            "last_attempt_at":self.last_external_attempt_at.isoformat() if self.last_external_attempt_at else None,
                             "last_error":self.last_external_error,
                             "failures":self.external_write_failures},
           "calibration_ready":False,
