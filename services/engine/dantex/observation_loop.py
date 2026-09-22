@@ -101,7 +101,14 @@ class ObservationLoop:
     def snapshot(self) -> dict:
         with self._lock:
             now = datetime.now(IST)
-            age = (now - self.last_persisted_at).total_seconds() if self.last_persisted_at else None
+            # Live authorization is based on the durable sink when Supabase REST
+            # is configured. A successful write to ephemeral local SQLite must
+            # never make the service claim that durable/live data is current.
+            validation = validation_recorder.status()
+            external = validation.get("external_write") or {}
+            durable_ts = external.get("last_success_at") if validation.get("external_configured") else None
+            durable_at = datetime.fromisoformat(durable_ts).astimezone(IST) if durable_ts else self.last_persisted_at
+            age = (now - durable_at).total_seconds() if durable_at else None
             freshness = "UNKNOWN" if age is None else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
             return {
                 "state": self.state,
@@ -111,7 +118,10 @@ class ObservationLoop:
                 "interval_seconds": self.interval_seconds,
                 "samples": self.samples,
                 "last_sample_at": self.last_sample_at.isoformat() if self.last_sample_at else None,
-                "last_persisted_at": self.last_persisted_at.isoformat() if self.last_persisted_at else None,
+                "last_persisted_at": durable_at.isoformat() if durable_at else None,
+                "durable_sink_required": bool(validation.get("external_configured")),
+                "durable_sink_error": external.get("last_error"),
+                "durable_sink_failures": external.get("failures", 0),
                 "last_error": self.last_error,
                 "market_hours": "09:15-15:30 Asia/Kolkata weekdays",
                 "mode": "shadow",
