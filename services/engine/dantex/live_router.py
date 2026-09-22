@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from .quality import DataQuality
+from .quality import DataQuality, assess_data_quality
 
 
 @dataclass(frozen=True)
@@ -22,12 +22,10 @@ def route_tick(
     provider_timestamp: datetime,
     max_age_seconds: float = 5,
 ) -> RoutedTick:
-    age = (received_at - provider_timestamp).total_seconds()
-    usable = 0 <= age <= max_age_seconds
-    quality = DataQuality(
-        usable=usable,
-        freshness_seconds=max(0, age),
-        completeness=1.0 if payload else 0.0,
-        reason="fresh live tick" if usable and payload else "stale or incomplete live tick",
+    quality = assess_data_quality(
+        now=received_at,
+        exchange_timestamp=provider_timestamp,
+        max_age_seconds=max_age_seconds,
+        required_fields_present=bool(payload),
     )
     return RoutedTick(instrument_key, received_at, payload, quality)
