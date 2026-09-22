@@ -36,7 +36,21 @@ def start_shadow_observers():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "dante-x-engine"}
+    observer = observation_loop.snapshot()
+    validation = validation_recorder.status()
+    live = observer.get("freshness") == "LIVE"
+    return {
+        "status": "ok" if live else "degraded",
+        "service": "dante-x-engine",
+        "live_data": {
+            "status": observer.get("freshness"),
+            "age_seconds": observer.get("age_seconds"),
+            "eligible": live,
+            "last_sample_at": observer.get("last_sample_at"),
+            "last_persisted_at": observer.get("last_persisted_at"),
+        },
+        "durable_sink": validation.get("external_write"),
+    }
 
 
 @app.get("/v1/structure/{symbol}")
