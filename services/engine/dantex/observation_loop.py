@@ -93,9 +93,32 @@ class ObservationLoop:
                     self.last_error = None
                     self.state = "SAMPLING"
             except Exception as exc:
+                error = f"{type(exc).__name__}: {str(exc)[:180]}"
                 with self._lock:
-                    self.last_error = f"{type(exc).__name__}: {str(exc)[:180]}"
+                    self.last_error = error
                     self.state = "DEGRADED"
+                # Persist failure heartbeats too. If these stop as well, the
+                # runtime itself is sleeping/stopped rather than Upstox failing.
+                try:
+                    validation_recorder.record_duel(
+                        {
+                            "state": "OBSERVATION_ERROR",
+                            "family_counts": {},
+                            "readiness": {"observer": False},
+                        },
+                        {
+                            "status": "OBSERVATION_FAILED",
+                            "authorization": "NONE",
+                            "error": error,
+                        },
+                        {"observer_error": error},
+                    )
+                except Exception as persist_exc:
+                    with self._lock:
+                        self.last_error = (
+                            f"{error}; persistence={type(persist_exc).__name__}: "
+                            f"{str(persist_exc)[:120]}"
+                        )
             sleep(self.interval_seconds)
 
     def snapshot(self) -> dict:
