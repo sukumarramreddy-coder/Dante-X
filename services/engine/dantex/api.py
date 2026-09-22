@@ -17,7 +17,6 @@ from .momentum import momentum_family, cross_index_momentum
 from .breadth import breadth_family, sector_leadership_family, volatility_family, NIFTY_BREADTH_KEYS, SECTOR_INDEX_KEYS, INDIA_VIX_KEY
 from .observation_loop import observation_loop
 from .providers.structure_live import structure_snapshot
-from .radar import RadarInputs, opportunity_score
 from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
