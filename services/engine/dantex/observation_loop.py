@@ -26,6 +26,7 @@ class ObservationLoop:
     samples: int = 0
     last_sample_at: datetime | None = None
     last_error: str | None = None
+    last_persisted_at: datetime | None = None
     _started: bool = field(default=False, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
     _outcomes: OutcomeTracker = field(default_factory=lambda: OutcomeTracker(validation_recorder), repr=False)
@@ -84,9 +85,11 @@ class ObservationLoop:
                         "banknifty_path": snapshots["BANKNIFTY"].get("path_response"),
                     },
                 )
+                persisted_at = datetime.now(IST)
                 with self._lock:
                     self.samples += 1
-                    self.last_sample_at = datetime.now(IST)
+                    self.last_sample_at = persisted_at
+                    self.last_persisted_at = persisted_at
                     self.last_error = None
                     self.state = "SAMPLING"
             except Exception as exc:
@@ -97,11 +100,18 @@ class ObservationLoop:
 
     def snapshot(self) -> dict:
         with self._lock:
+            now = datetime.now(IST)
+            age = (now - self.last_persisted_at).total_seconds() if self.last_persisted_at else None
+            freshness = "UNKNOWN" if age is None else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
             return {
                 "state": self.state,
+                "freshness": freshness,
+                "age_seconds": round(age, 1) if age is not None else None,
+                "live_authorization_eligible": freshness == "LIVE",
                 "interval_seconds": self.interval_seconds,
                 "samples": self.samples,
                 "last_sample_at": self.last_sample_at.isoformat() if self.last_sample_at else None,
+                "last_persisted_at": self.last_persisted_at.isoformat() if self.last_persisted_at else None,
                 "last_error": self.last_error,
                 "market_hours": "09:15-15:30 Asia/Kolkata weekdays",
                 "mode": "shadow",
