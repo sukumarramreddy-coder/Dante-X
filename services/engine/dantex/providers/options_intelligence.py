@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Any
 from collections import deque
