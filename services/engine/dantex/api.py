@@ -135,7 +135,12 @@ def option_duel():
                 "ltp": item.get("last_price") or item.get("ltp"),
                 "prev_close": ohlc.get("close") or item.get("prev_close"),
             })
-        breadth_gate = freshness_gate(source="BREADTH", provider_fresh=None)
+        breadth_timestamps = [
+            item.get("timestamp") for item in raw.values()
+            if isinstance(item, dict) and item.get("timestamp")
+        ] if isinstance(raw, dict) else []
+        breadth_timestamp = min(breadth_timestamps) if breadth_timestamps else None
+        breadth_gate = freshness_gate(source="BREADTH", timestamp=breadth_timestamp)
         families["freshness"]["breadth"] = breadth_gate
         families["families"]["breadth"] = breadth_family(quotes) if breadth_gate["eligible"] else {
             "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
@@ -156,7 +161,12 @@ def option_duel():
                 ohlc = item.get("ohlc") or {}
                 sector_quotes[name] = {"ltp":item.get("last_price") or item.get("ltp"),
                                        "prev_close":ohlc.get("close") or item.get("prev_close")}
-        sector_gate = freshness_gate(source="SECTOR_LEADERSHIP", provider_fresh=None)
+        sector_timestamps = [
+            item.get("timestamp") for item in sector_raw.values()
+            if isinstance(item, dict) and item.get("timestamp")
+        ] if isinstance(sector_raw, dict) else []
+        sector_timestamp = min(sector_timestamps) if sector_timestamps else None
+        sector_gate = freshness_gate(source="SECTOR_LEADERSHIP", timestamp=sector_timestamp)
         families["freshness"]["sector_leadership"] = sector_gate
         families["families"]["sector_leadership"] = sector_leadership_family(sector_quotes) if sector_gate["eligible"] else {
             "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
@@ -173,7 +183,7 @@ def option_duel():
             vix_ohlc = vix_item.get("ohlc") or {}
             vix_quote = {"ltp":vix_item.get("last_price") or vix_item.get("ltp"),
                          "prev_close":vix_ohlc.get("close") or vix_item.get("prev_close")}
-            vix_gate = freshness_gate(source="INDIA_VIX", provider_fresh=None)
+            vix_gate = freshness_gate(source="INDIA_VIX", timestamp=vix_item.get("timestamp"))
             families["freshness"]["volatility"] = vix_gate
             families["families"]["volatility"] = volatility_family(vix_quote) if vix_gate["eligible"] else {
                 "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
