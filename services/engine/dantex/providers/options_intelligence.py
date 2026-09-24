@@ -116,12 +116,15 @@ class OptionsIntelligence:
         self._history = {}
         self._lock = Lock()
 
-    def _track(self, symbol: str, spot: float, atm: float, strikes: list[dict[str, Any]]) -> dict[str, Any]:
+    def _track(self, symbol: str, spot: float, atm: float, strikes: list[dict[str, Any]], *, expiry: str | None = None) -> dict[str, Any]:
         now = time()
         local_now = datetime.now(ZoneInfo("Asia/Kolkata"))
         atm_row = min(strikes, key=lambda x: abs(x["strike"] - atm))
         point = {
             "ts": now, "iso_ts": local_now.isoformat(), "session_date": local_now.date().isoformat(), "spot": spot,
+            "contract_identity": (expiry, atm_row["strike"],
+                                  atm_row["call"].get("instrument_key"),
+                                  atm_row["put"].get("instrument_key")),
             "call_ltp": atm_row["call"].get("ltp"),
             "put_ltp": atm_row["put"].get("ltp"),
             "call_iv": atm_row["call"].get("iv"),
@@ -131,6 +134,10 @@ class OptionsIntelligence:
         }
         with self._lock:
             history = self._history.setdefault(symbol, deque(maxlen=60))
+            # Never compare different contracts or carry yesterday into today.
+            if history and (history[-1]["contract_identity"] != point["contract_identity"]
+                            or history[-1]["session_date"] != point["session_date"]):
+                history.clear()
             history.append(point)
             if len(history) < 2:
                 return {"state": "BUILDING_BASELINE", "samples": len(history)}
@@ -208,7 +215,7 @@ class OptionsIntelligence:
         ordered = sorted(parsed, key=lambda x: x["strike"])
         atm_index = next(i for i, x in enumerate(ordered) if x["strike"] == atm)
         selected = ordered[max(0, atm_index - wings): atm_index + wings + 1]
-        path = self._track(symbol, spot, atm, selected)
+        path = self._track(symbol, spot, atm, selected, expiry=expiry)
         return {
             "symbol": symbol,
             "underlying_key": underlying_key,

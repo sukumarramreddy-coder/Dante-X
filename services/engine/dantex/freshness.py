@@ -29,7 +29,9 @@ def gate(*, source: str, timestamp: str | None = None,
     if timestamp:
         try:
             ts=datetime.fromisoformat(timestamp.replace("Z","+00:00")).astimezone(IST)
-            age=max(0.0,((now or datetime.now(IST)).astimezone(IST)-ts).total_seconds())
+            age=((now or datetime.now(IST)).astimezone(IST)-ts).total_seconds()
+            if age < 0:
+                reasons.append("source timestamp is in the future")
             if session["market_open"] and age > 180:
                 reasons.append(f"snapshot age {age:.0f}s exceeds live tolerance")
         except ValueError:

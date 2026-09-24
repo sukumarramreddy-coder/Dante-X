@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, time
 from threading import Lock, Thread
 from time import sleep
 from zoneinfo import ZoneInfo
@@ -16,7 +16,9 @@ IST = ZoneInfo("Asia/Kolkata")
 
 
 def _market_window(now: datetime) -> bool:
-    return bool(market_session(now).get("market_open"))
+    """Record through the entire 15:39 minute, independently of trading hours."""
+    local = now.astimezone(IST)
+    return local.weekday() < 5 and time(9, 15) <= local.time() < time(15, 40)
 
 
 @dataclass
@@ -57,17 +59,22 @@ class ObservationLoop:
                     if snap.get("status") != "OK":
                         raise RuntimeError(f"{symbol}:{snap.get('status')}")
                     snapshots[symbol] = snap
-                self._outcomes.observe(snapshots)
+                trading_open = bool(market_session(now)["market_open"])
+                # Closing snapshots are context, not fresh trade outcome ticks.
+                if trading_open:
+                    self._outcomes.observe(snapshots)
                 # Persist every successful observation, not only /v1/duel calls.
                 # This makes the deployed shadow observer useful unattended:
                 # market snapshots continue flowing to the configured durable
-                # validation sink while the market is open.
+                # validation sink through the closing observation window.
                 validation_recorder.record_duel(
                     {
                         "state": "OBSERVATION",
                         "family_counts": {},
                         "readiness": {
                             "observer": True,
+                            "market_open": trading_open,
+                            "post_market_context": not trading_open,
                             "nifty": snapshots["NIFTY"].get("status") == "OK",
                             "banknifty": snapshots["BANKNIFTY"].get("status") == "OK",
                         },
@@ -91,7 +98,7 @@ class ObservationLoop:
                     self.last_sample_at = persisted_at
                     self.last_persisted_at = persisted_at
                     self.last_error = None
-                    self.state = "SAMPLING"
+                    self.state = "SAMPLING" if trading_open else "POST_MARKET_SAMPLING"
             except Exception as exc:
                 error = f"{type(exc).__name__}: {str(exc)[:180]}"
                 with self._lock:
@@ -133,11 +140,14 @@ class ObservationLoop:
             durable_at = datetime.fromisoformat(durable_ts).astimezone(IST) if durable_ts else self.last_persisted_at
             age = (now - durable_at).total_seconds() if durable_at else None
             freshness = "UNKNOWN" if age is None else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
+            trading_open = bool(market_session(now)["market_open"])
+            if not trading_open and freshness == "LIVE":
+                freshness = "STALE_CONTEXT"
             return {
                 "state": self.state,
                 "freshness": freshness,
                 "age_seconds": round(age, 1) if age is not None else None,
-                "live_authorization_eligible": freshness == "LIVE",
+                "live_authorization_eligible": trading_open and freshness == "LIVE",
                 "interval_seconds": self.interval_seconds,
                 "samples": self.samples,
                 "last_sample_at": self.last_sample_at.isoformat() if self.last_sample_at else None,
@@ -147,6 +157,7 @@ class ObservationLoop:
                 "durable_sink_failures": external.get("failures", 0),
                 "last_error": self.last_error,
                 "market_hours": "09:15-15:30 Asia/Kolkata weekdays",
+                "recording_hours": "09:15-15:39 inclusive Asia/Kolkata weekdays",
                 "mode": "shadow",
             }
 
