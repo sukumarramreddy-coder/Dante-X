@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import isfinite
 from urllib.error import HTTPError, URLError
 
 from fastapi import FastAPI
@@ -23,6 +24,23 @@ from .decision import shadow_decision
 from .validation_recorder import validation_recorder
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
+
+def _previous_close(item):
+    """Use valid prior-close data; intraday OHLC close is not prior close."""
+    def finite_number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+
+    ltp = item.get("last_price") or item.get("ltp")
+    net = item.get("net_change")
+    if finite_number(ltp) and ltp > 0 and finite_number(net):
+        previous = ltp - net
+        if finite_number(previous) and previous > 0:
+            return previous
+    for key in ("prev_close", "prev_close_price"):
+        previous = item.get(key)
+        if finite_number(previous) and previous > 0:
+            return previous
+    return None
 
 
 @app.on_event("startup")
@@ -130,10 +148,9 @@ def option_duel():
         for item in raw.values() if isinstance(raw, dict) else []:
             if not isinstance(item, dict):
                 continue
-            ohlc = item.get("ohlc") or {}
             quotes.append({
                 "ltp": item.get("last_price") or item.get("ltp"),
-                "prev_close": ohlc.get("close") or item.get("prev_close"),
+                "prev_close": _previous_close(item),
             })
         breadth_timestamps = [
             item.get("timestamp") for item in raw.values()
@@ -158,9 +175,8 @@ def option_duel():
                 item = next((v for k,v in sector_raw.items()
                              if isinstance(v,dict) and (k == key or v.get("instrument_token") == key)), None)
             if isinstance(item, dict):
-                ohlc = item.get("ohlc") or {}
                 sector_quotes[name] = {"ltp":item.get("last_price") or item.get("ltp"),
-                                       "prev_close":ohlc.get("close") or item.get("prev_close")}
+                                       "prev_close":_previous_close(item)}
         sector_timestamps = [
             item.get("timestamp") for item in sector_raw.values()
             if isinstance(item, dict) and item.get("timestamp")
@@ -180,9 +196,8 @@ def option_duel():
             vix_item = next((v for k,v in vix_raw.items()
                              if isinstance(v,dict) and (k == INDIA_VIX_KEY or v.get("instrument_token") == INDIA_VIX_KEY)), None)
         if isinstance(vix_item, dict):
-            vix_ohlc = vix_item.get("ohlc") or {}
             vix_quote = {"ltp":vix_item.get("last_price") or vix_item.get("ltp"),
-                         "prev_close":vix_ohlc.get("close") or vix_item.get("prev_close")}
+                         "prev_close":_previous_close(vix_item)}
             vix_gate = freshness_gate(source="INDIA_VIX", timestamp=vix_item.get("timestamp"))
             families["freshness"]["volatility"] = vix_gate
             families["families"]["volatility"] = volatility_family(vix_quote) if vix_gate["eligible"] else {
@@ -394,4 +409,3 @@ def upstox_diagnostic():
             else "market-data response was incomplete"
         ),
     }
-
