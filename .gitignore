@@ -17,3 +17,7 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+# Local historical evidence archives (never commit market datasets).
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

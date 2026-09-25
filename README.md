@@ -54,3 +54,10 @@ To cross from code-complete foundation to validated live intelligence, the proje
 - a deployment target for the engine/UI
 
 These are operational inputs, not reasons to weaken the safety gates.
+
+### Historical bootstrap
+
+The read-only historical importer can accumulate the last 90 provider-reported
+NIFTY/BANKNIFTY sessions in a separate, append-only index-candle archive. It reports
+coverage and missing inputs; it does not claim options calibration. See
+[Historical ingestion](docs/HISTORICAL_INGESTION.md) for the command and storage requirements.
