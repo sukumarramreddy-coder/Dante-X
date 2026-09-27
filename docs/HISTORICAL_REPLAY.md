@@ -97,7 +97,10 @@ table, forward recorder, external sink, lifecycle or calibration invocation.
 regardless of history length or directional agreement. Historical replay alone
 cannot unlock probabilities. Full option evidence replay, premium/trade outcome
 labels, costs/slippage, independent forward evidence, walk-forward evaluation
-and the existing out-of-sample/calibration gates remain outstanding.
+and the existing out-of-sample/calibration gates remain outstanding. The separate
+[walk-forward diagnostic harness](WALK_FORWARD.md) can now partition and inspect
+frozen index-component outcomes; completing those diagnostics does not satisfy
+the full strategy/forward/calibration gates.
 
 ## Verification
 
