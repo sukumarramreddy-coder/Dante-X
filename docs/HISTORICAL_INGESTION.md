@@ -68,4 +68,8 @@ independent evidence families are not reconstructed from index candles. Outcome
 labelling, chronological replay, costs and held-out walk-forward validation remain
 separate work. No probability or performance claim is justified by this import.
 
+The offline index-only replay and descriptive forward-label stage is now
+available; see [Historical replay](HISTORICAL_REPLAY.md). Full option outcomes
+and probability calibration remain gated.
+
 Provider reference: [Upstox Historical Candle Data V3](https://upstox.com/developer/api-documentation/v3/get-historical-candle-data/).
