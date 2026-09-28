@@ -10,7 +10,7 @@ export default function Home() {
     <main>
       <header>
         <div><strong>DANTE X</strong><span> MARKET INTELLIGENCE</span></div>
-        <div className="live">● SHADOW MODE</div>
+        <div className="live">● DEMO · SHADOW MODE · NO LIVE SIGNALS</div>
       </header>
 
       <nav><b>RADAR</b><span>FOCUS</span><span>LIVE TRADE</span><span>EVENTS</span><span>LAB</span></nav>

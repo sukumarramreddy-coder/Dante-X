@@ -100,7 +100,7 @@ class ObservationLoop:
                     self.last_error = None
                     self.state = "SAMPLING" if trading_open else "POST_MARKET_SAMPLING"
             except Exception as exc:
-                error = f"{type(exc).__name__}: {str(exc)[:180]}"
+                error = type(exc).__name__
                 with self._lock:
                     self.last_error = error
                     self.state = "DEGRADED"
@@ -123,8 +123,7 @@ class ObservationLoop:
                 except Exception as persist_exc:
                     with self._lock:
                         self.last_error = (
-                            f"{error}; persistence={type(persist_exc).__name__}: "
-                            f"{str(persist_exc)[:120]}"
+                            f"{error}; persistence={type(persist_exc).__name__}"
                         )
             sleep(self.interval_seconds)
 
@@ -137,9 +136,12 @@ class ObservationLoop:
             validation = validation_recorder.status()
             external = validation.get("external_write") or {}
             durable_ts = external.get("last_success_at") if validation.get("external_configured") else None
-            durable_at = datetime.fromisoformat(durable_ts).astimezone(IST) if durable_ts else self.last_persisted_at
+            durable_at = (datetime.fromisoformat(durable_ts).astimezone(IST) if durable_ts else None) if validation.get("external_configured") else self.last_persisted_at
+            if validation.get("external_configured"):
+                # A diagnostic sink heartbeat cannot refresh an old market sample.
+                durable_at = min(durable_at, self.last_sample_at) if durable_at and self.last_sample_at else None
             age = (now - durable_at).total_seconds() if durable_at else None
-            freshness = "UNKNOWN" if age is None else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
+            freshness = "UNKNOWN" if age is None or age < 0 else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
             trading_open = bool(market_session(now)["market_open"])
             if not trading_open and freshness == "LIVE":
                 freshness = "STALE_CONTEXT"
@@ -147,7 +149,9 @@ class ObservationLoop:
                 "state": self.state,
                 "freshness": freshness,
                 "age_seconds": round(age, 1) if age is not None else None,
-                "live_authorization_eligible": trading_open and freshness == "LIVE",
+                "live_authorization_eligible": False,
+                "durable_ready": bool(validation.get("durable_ready")),
+                "live_observation_eligible": trading_open and freshness == "LIVE" and bool(validation.get("durable_ready")),
                 "interval_seconds": self.interval_seconds,
                 "samples": self.samples,
                 "last_sample_at": self.last_sample_at.isoformat() if self.last_sample_at else None,

@@ -1,5 +1,6 @@
 from __future__ import annotations
-import json, os, sqlite3, urllib.request
+import json, os, sqlite3, urllib.request, tempfile
+from urllib.parse import urlsplit
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,7 +9,13 @@ from zoneinfo import ZoneInfo
 from typing import Any
 
 IST=ZoneInfo("Asia/Kolkata")
-DEFAULT_DB=os.getenv("DANTEX_VALIDATION_DB","/tmp/dantex-validation.sqlite3")
+DEFAULT_DB=os.getenv("DANTEX_VALIDATION_DB",str(Path(tempfile.gettempdir()) / "dantex-validation.sqlite3"))
+
+
+class NoCredentialRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise RuntimeError("external sink redirect refused")
+
 
 class ValidationRecorder:
     """SQLite SHADOW dataset for evidence, decisions and later outcome labels."""
@@ -40,12 +47,16 @@ class ValidationRecorder:
         """Optional zero-cost durable sink. Compatible with Supabase REST when configured."""
         url=os.getenv("DANTEX_VALIDATION_REST_URL","").rstrip("/")
         key=os.getenv("DANTEX_VALIDATION_REST_KEY","")
-        if not url or not key:return False
+        if not url and not key:return False
+        if not url or not key:raise ValueError("incomplete external sink configuration")
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError("external sink requires an HTTPS URL without credentials or query")
         self.last_external_attempt_at = datetime.now(timezone.utc)
         req=urllib.request.Request(url,data=json.dumps(row).encode(),method="POST",
             headers={"Content-Type":"application/json","apikey":key,
                      "Authorization":f"Bearer {key}","Prefer":"return=minimal"})
-        with urllib.request.urlopen(req,timeout=8) as resp:
+        with urllib.request.build_opener(NoCredentialRedirect()).open(req,timeout=8) as resp:
             if resp.status not in (200,201,204):raise RuntimeError(f"external validation sink HTTP {resp.status}")
         return True
     def record_duel(self,families:dict[str,Any],decision:dict[str,Any]|None=None,market_snapshot:dict[str,Any]|None=None)->int:
@@ -68,9 +79,9 @@ class ValidationRecorder:
             if wrote:
                 self.last_external_write_at = datetime.now(timezone.utc)
                 self.last_external_error = None
-        except (OSError, RuntimeError, TimeoutError) as exc:
+        except (OSError, RuntimeError, TimeoutError, ValueError) as exc:
             self.external_write_failures += 1
-            self.last_external_error = f"{type(exc).__name__}: {str(exc)[:180]}"
+            self.last_external_error = type(exc).__name__
         return sample_id
     def record(self,payload:dict[str,Any])->None:self.record_duel(payload,None)
     def label(self,sample_id:int,outcome:dict[str,Any])->None:
@@ -106,10 +117,24 @@ class ValidationRecorder:
             count,first,last,labelled=db.execute("""SELECT COUNT(*),MIN(recorded_at),
               MAX(recorded_at),SUM(CASE WHEN outcome IS NOT NULL THEN 1 ELSE 0 END)
               FROM validation_samples""").fetchone()
-        external=bool(os.getenv("DANTEX_VALIDATION_REST_URL") and os.getenv("DANTEX_VALIDATION_REST_KEY"))
-        persistent=external or not self.path.startswith("/tmp/")
+        external=bool(os.getenv("DANTEX_VALIDATION_REST_URL") or os.getenv("DANTEX_VALIDATION_REST_KEY"))
+        # A pathname alone cannot prove a persistent volume. Explicit operator
+        # attestation is required, and known temporary locations remain excluded.
+        resolved = Path(self.path).resolve()
+        temporary = self.path == ":memory:" or any(
+            resolved == base or base in resolved.parents
+            for base in (Path(tempfile.gettempdir()).resolve(), Path("/tmp").resolve(), Path("/var/tmp").resolve())
+        )
+        local_durable = os.getenv("DANTEX_VALIDATION_DURABLE", "").lower() == "true" and not temporary
+        age = ((datetime.now(timezone.utc) - self.last_external_write_at).total_seconds()
+               if self.last_external_write_at else None)
+        external_healthy = external and age is not None and 0 <= age < 60 and self.last_external_error is None
+        persistent = local_durable
+        durable_ready = external_healthy if external else local_durable
         return {"samples":count,"labelled_samples":labelled or 0,"first":first,"last":last,
           "persistent":persistent,"external_configured":external,
+          "durable_ready":durable_ready,"local_durable":local_durable,
+          "external_healthy":external_healthy,
           "storage":"external+sqlite" if external else "sqlite",
           "path":"external-rest" if external else (self.path if persistent else "ephemeral-runtime-disk"),"mode":"shadow",
           "external_write":{"last_success_at":self.last_external_write_at.isoformat() if self.last_external_write_at else None,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -9,7 +9,7 @@ from ..market import Quote
 
 @dataclass(frozen=True)
 class UpstoxConfig:
-    access_token: str
+    access_token: str = field(repr=False)
     rest_base: str = "https://api.upstox.com"
     api_version: str = "2.0"
 

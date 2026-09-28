@@ -28,15 +28,20 @@ def gate(*, source: str, timestamp: str | None = None,
         reasons.append("provider marked snapshot stale")
     if timestamp:
         try:
-            ts=datetime.fromisoformat(timestamp.replace("Z","+00:00")).astimezone(IST)
+            if not isinstance(timestamp, str):
+                raise TypeError("timestamp must be timezone-aware ISO text")
+            ts=datetime.fromisoformat(timestamp.replace("Z","+00:00"))
+            if ts.tzinfo is None:
+                raise ValueError("timezone required")
+            ts=ts.astimezone(IST)
             age=((now or datetime.now(IST)).astimezone(IST)-ts).total_seconds()
             if age < 0:
                 reasons.append("source timestamp is in the future")
             if session["market_open"] and age > 180:
                 reasons.append(f"snapshot age {age:.0f}s exceeds live tolerance")
-        except ValueError:
+        except (ValueError, TypeError):
             reasons.append("unparseable source timestamp")
-    elif session["market_open"] and provider_fresh is not True:
+    else:
         reasons.append("live timestamp/freshness not proven")
     eligible=not reasons
     return {"source":source,"eligible":eligible,

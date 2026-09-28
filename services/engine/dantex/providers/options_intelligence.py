@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import isfinite
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -22,7 +23,8 @@ UNDERLYINGS = {
 
 def _num(value: Any) -> float | None:
     try:
-        return float(value) if value is not None else None
+        number = float(value) if value is not None and not isinstance(value, bool) else None
+        return number if number is not None and isfinite(number) else None
     except (TypeError, ValueError):
         return None
 
@@ -231,6 +233,8 @@ class OptionsIntelligence:
                 "note": "execution_score measures tradability only, not bullish/bearish direction",
             },
             "status": "OK",
+            "evidence_eligible": False,
+            "freshness_reason": "option chain exchange timestamp not proven",
             "mode": "shadow",
         }
 

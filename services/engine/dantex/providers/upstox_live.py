@@ -6,6 +6,7 @@ from threading import Lock, Thread
 from typing import Any
 
 from .credentials import UpstoxCredentials
+from .tick_integrity import valid_tick, tick_fresh
 
 NIFTY_KEY = "NSE_INDEX|Nifty 50"
 
@@ -67,26 +68,21 @@ class NiftyLiveProbe:
 
             def on_message(message: Any) -> None:
                 now = datetime.now(timezone.utc)
-                ltpc = _find_ltpc(message)
+                feeds = message.get("feeds", {}) if isinstance(message, dict) else {}
+                ltpc = _find_ltpc(feeds.get(self.instrument_key)) if isinstance(feeds, dict) else None
                 with self._lock:
                     self.message_count += 1
+                    tick = valid_tick(ltpc, now)
+                    if tick is None:
+                        self.state = "STALE"
+                        return
+                    self.ltp, self.exchange_timestamp_ms = tick
                     self.received_at = now
-                    if ltpc is not None:
-                        try:
-                            self.ltp = float(ltpc["ltp"])
-                        except (TypeError, ValueError, KeyError):
-                            pass
-                        raw_ltt = ltpc.get("ltt")
-                        try:
-                            self.exchange_timestamp_ms = int(raw_ltt) if raw_ltt is not None else None
-                        except (TypeError, ValueError):
-                            self.exchange_timestamp_ms = None
-                        if self.ltp is not None:
-                            self.state = "LIVE"
+                    self.state = "LIVE"
 
             def on_error(error: Any) -> None:
                 with self._lock:
-                    self.error = str(error)[:240]
+                    self.error = "provider stream error"
                     self.state = "STALE"
 
             def on_close(*_args: Any) -> None:
@@ -103,7 +99,7 @@ class NiftyLiveProbe:
             streamer.connect()
         except Exception as exc:
             with self._lock:
-                self.error = f"{type(exc).__name__}: {str(exc)[:180]}"
+                self.error = type(exc).__name__
                 self.state = "OFFLINE"
                 self.connected = False
 
@@ -113,7 +109,7 @@ class NiftyLiveProbe:
             received = self.received_at
             age_ms = max(0, int((now - received).total_seconds() * 1000)) if received else None
             state = self.state
-            if state == "LIVE" and age_ms is not None and age_ms > 15_000:
+            if state == "LIVE" and (not self.connected or not tick_fresh(self.ltp, self.exchange_timestamp_ms, received, now)):
                 state = "STALE"
             return {
                 "provider": "upstox",

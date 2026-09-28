@@ -12,6 +12,8 @@ services:
         sync: false
       - key: DANTEX_VALIDATION_DB
         value: /tmp/dantex-validation.sqlite3
+      - key: DANTEX_VALIDATION_DURABLE
+        value: "false"
       - key: DANTEX_VALIDATION_REST_URL
         sync: false
       - key: DANTEX_VALIDATION_REST_KEY

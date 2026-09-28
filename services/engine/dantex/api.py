@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from math import isfinite
 from urllib.error import HTTPError, URLError
 
@@ -23,7 +24,13 @@ from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
 from .validation_recorder import validation_recorder
 
-app = FastAPI(title="Dante X Engine", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_shadow_observers()
+    yield
+
+
+app = FastAPI(title="Dante X Engine", version="0.1.0", lifespan=lifespan)
 
 def _previous_close(item):
     """Use valid prior-close data; intraday OHLC close is not prior close."""
@@ -43,7 +50,6 @@ def _previous_close(item):
     return None
 
 
-@app.on_event("startup")
 def start_shadow_observers():
     """Start read-only background observers with the service process."""
     core_live_feed.start()
@@ -55,7 +61,7 @@ def start_shadow_observers():
 def health():
     observer = observation_loop.snapshot()
     validation = validation_recorder.status()
-    live = observer.get("freshness") == "LIVE"
+    live = bool(observer.get("live_observation_eligible"))
     return {
         "status": "ok" if live else "degraded",
         "service": "dante-x-engine",
@@ -79,7 +85,7 @@ def live_structure(symbol: str):
     try:
         return structure_snapshot(normalized)
     except Exception as exc:
-        return {"symbol": normalized, "status": "DEGRADED", "error": f"{type(exc).__name__}: {str(exc)[:180]}", "mode": "shadow"}
+        return {"symbol": normalized, "status": "DEGRADED", "error": type(exc).__name__, "mode": "shadow"}
 
 
 @app.get("/v1/observation/status")
@@ -104,8 +110,8 @@ def option_duel():
     families["freshness"] = {"session": session}
     n_path = nifty.get("path_response") or {}
     b_path = bank.get("path_response") or {}
-    n_options_gate = freshness_gate(source="NIFTY_OPTIONS", timestamp=n_path.get("last_sample_at"), session_date=n_path.get("session_date"))
-    b_options_gate = freshness_gate(source="BANKNIFTY_OPTIONS", timestamp=b_path.get("last_sample_at"), session_date=b_path.get("session_date"))
+    n_options_gate = freshness_gate(source="NIFTY_OPTIONS", timestamp=n_path.get("last_sample_at"), session_date=n_path.get("session_date"), provider_fresh=nifty.get("evidence_eligible", False))
+    b_options_gate = freshness_gate(source="BANKNIFTY_OPTIONS", timestamp=b_path.get("last_sample_at"), session_date=b_path.get("session_date"), provider_fresh=bank.get("evidence_eligible", False))
     families["freshness"]["nifty_options"] = n_options_gate
     families["freshness"]["banknifty_options"] = b_options_gate
     if not (n_options_gate["eligible"] and b_options_gate["eligible"]):
@@ -274,7 +280,7 @@ def validation_status():
     except Exception as exc:
         status=validation_recorder.status()
         status["write_test"]="FAILED"
-        status["write_error"]=f"{type(exc).__name__}: {str(exc)[:180]}"
+        status["write_error"]=type(exc).__name__
         return status
     status=validation_recorder.status()
     status["write_test"]="OK"
@@ -344,8 +350,8 @@ def upstox_diagnostic():
             body = json.loads(exc.read().decode("utf-8", errors="replace"))
             errors = body.get("errors") or []
             if errors and isinstance(errors[0], dict):
-                upstox_error_code = errors[0].get("errorCode") or errors[0].get("error_code")
-                upstox_error_message = errors[0].get("message")
+                upstox_error_code = None  # Do not echo untrusted provider bodies.
+                upstox_error_message = "provider rejected request"
         except Exception:
             pass
         return {

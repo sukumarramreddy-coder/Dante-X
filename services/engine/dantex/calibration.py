@@ -31,6 +31,9 @@ def calibration_bands(
         rate = None if not bucket else sum(s.target_before_stop for s in bucket) / len(bucket) * 100
         bands.append(CalibrationBand(
             lower, upper, len(bucket), None if rate is None else round(rate, 1),
-            len(bucket) >= minimum_samples,
+            # Sample count is descriptive, not proof of OOS provenance, costs,
+            # or calibration stability. Publication stays gated until the
+            # separately reviewed validation stage supplies those proofs.
+            False,
         ))
     return bands

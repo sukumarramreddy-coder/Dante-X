@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
 class UpstoxCredentials:
-    analytics_token: str
+    analytics_token: str = field(repr=False)
 
     @classmethod
     def from_env(cls) -> UpstoxCredentials:

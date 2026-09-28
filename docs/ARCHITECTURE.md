@@ -54,3 +54,6 @@ A probability field becomes available only after:
 - net-of-cost evaluation.
 
 Until then the API must return probability as unavailable.
+
+For the distinction between implemented foundation modules, the deployed
+diagnostic API, and pending app wiring, see [Pre-App Integrity Audit](PRE_APP_INTEGRITY_AUDIT.md).
