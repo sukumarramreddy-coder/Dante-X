@@ -30,6 +30,12 @@ Dante X separates:
 
 No LLM-generated percentage is represented as a win probability.
 
+Shadow decisions now expose conservative **provisional, uncalibrated** probabilities
+for review. These frozen heuristics are separate from calibrated win rates and
+cannot authorize execution. Offline challenger adapters, causal regime filtering,
+triple-barrier labels, calibration metrics and a constrained optimizer benchmark
+are described in [the probability/challenger contract](docs/PROBABILITY_CHALLENGERS.md).
+
 ## Safety and execution
 
 - Read-only market intelligence.

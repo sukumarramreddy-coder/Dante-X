@@ -22,6 +22,7 @@ from .providers.structure_live import structure_snapshot
 from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
+from .challengers import challenger_status
 from .validation_recorder import validation_recorder
 
 @asynccontextmanager
@@ -102,7 +103,8 @@ def option_duel():
     nifty = options_intelligence.snapshot("NIFTY")
     bank = options_intelligence.snapshot("BANKNIFTY")
     if nifty.get("status") != "OK" or bank.get("status") != "OK":
-        return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow"}
+        return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow",
+                "decision": shadow_decision({}, {"live_evidence_ready": False}, {})}
     nifty_structure = structure_snapshot("NIFTY")
     bank_structure = structure_snapshot("BANKNIFTY")
     families = evidence_families(nifty, bank, nifty_structure, bank_structure)
@@ -260,6 +262,12 @@ def option_duel():
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
     }
+
+
+@app.get("/v1/challengers/status")
+def probability_challengers():
+    """Read-only artifact availability; no training or model upload surface."""
+    return challenger_status()
 
 
 @app.get("/v1/validation/recent")

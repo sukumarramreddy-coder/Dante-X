@@ -22,7 +22,8 @@ def test_reported_zero_score_conflict_is_a_state_veto():
         {"state": "PE", "pe": 2}, {"state": "CE", "ce": 1})
     consensus = recompute_consensus(families)
     assert consensus["family_counts"] == {"ce": 0, "pe": 5, "conflict": 1, "directional": 6}
-    assert shadow_decision(consensus, {"live_evidence_ready": True}, {}) == {
+    blocked = shadow_decision(consensus, {"live_evidence_ready": True}, {})
+    assert {k: blocked[k] for k in ("status", "authorization", "reason")} == {
         "status": "NO_SETUP", "authorization": "NONE", "reason": "family consensus CONFLICT"}
 
     # Resolution allows only shadow detection; freshness remains mandatory.
@@ -33,7 +34,9 @@ def test_reported_zero_score_conflict_is_a_state_veto():
         "quality": {"execution_score": 90}, "instrument_key": "test"}}]}
     result = shadow_decision(consensus, {"live_evidence_ready": True}, nifty)
     assert (result["status"], result["direction"], result["authorization"]) == ("DETECTED", "PE", "SHADOW_ONLY")
-    assert result["probability"] is None
+    assert 20 <= result["probability"] <= 60
+    assert result["probability_status"] == "PROVISIONAL"
+    assert result["calibration_ready"] is False
     blocked = shadow_decision(consensus, {"live_evidence_ready": False}, nifty)
     assert blocked["authorization"] == "NONE"
     assert blocked["reason"] == "required live evidence not fresh"
