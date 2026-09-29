@@ -25,3 +25,4 @@ Thumbs.db
 *.sqlite3-shm
 
 *.tsbuildinfo
+audit-results/

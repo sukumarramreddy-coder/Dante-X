@@ -25,6 +25,17 @@ from .decision import shadow_decision
 from .challengers import challenger_status
 from .learning_runtime import learning_window, collect_learning
 from .validation_recorder import validation_recorder
+from .expert_runtime import DecisionRuntime
+
+decision_runtime = DecisionRuntime(validation_recorder)
+
+
+def review_expert_safely(options, structures, families):
+    try:
+        decision_runtime.evaluate(options, structures, families)
+    except Exception:
+        # An optional review must never interrupt the established deterministic pipeline.
+        decision_runtime.last_error = "EXPERT_REVIEW_UNAVAILABLE"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -109,6 +120,7 @@ def build_option_duel(snapshots=None):
     nifty = snapshots["NIFTY"] if snapshots else options_intelligence.snapshot("NIFTY")
     bank = snapshots["BANKNIFTY"] if snapshots else options_intelligence.snapshot("BANKNIFTY")
     if nifty.get("status") != "OK" or bank.get("status") != "OK":
+        review_expert_safely({"NIFTY": nifty, "BANKNIFTY": bank}, {}, {})
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow",
                 "decision": shadow_decision({}, {"live_evidence_ready": False}, {})}
     nifty_structure = structure_snapshot("NIFTY")
@@ -256,6 +268,9 @@ def build_option_duel(snapshots=None):
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
+    # Additive shadow review; never changes the existing learner or manual signal.
+    review_expert_safely({"NIFTY": nifty, "BANKNIFTY": bank},
+                         {"NIFTY": nifty_structure, "BANKNIFTY": bank_structure}, families)
     validation_recorder.record_duel(families, decision, {
         "nifty_spot": nifty.get("spot"), "banknifty_spot": bank.get("spot"),
         "nifty_expiry": nifty.get("expiry"), "banknifty_expiry": bank.get("expiry"),
@@ -287,6 +302,22 @@ def run_learning_cycle(snapshots, now=None):
 @app.get("/v1/calibration/learning")
 def calibration_learning():
     return learning_window().report()
+
+
+@app.get("/v1/decision/current")
+def current_decision():
+    """Observer-produced result. UI polling never triggers paid expert calls."""
+    return decision_runtime.current()
+
+
+@app.get("/v1/decision/history")
+def decision_history(limit: int = 50):
+    return {"schema_version": "1.0", "mode": "shadow", "evaluations": decision_runtime.history(limit)}
+
+
+@app.get("/v1/expert/status")
+def expert_status():
+    return decision_runtime.provider.status()
 
 
 @app.get("/v1/signals/manual")
