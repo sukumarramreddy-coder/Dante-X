@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from math import isfinite
+from dataclasses import asdict
 from urllib.error import HTTPError, URLError
 
 from fastapi import FastAPI
@@ -22,6 +23,10 @@ from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
 from .validation_recorder import validation_recorder
+from .shadow_lifecycle import ShadowLifecycle
+from .positioning import positioning_snapshot
+from .market_pulse import build_market_pulse
+from .replay_capture import quote_capture, replay_capture
 
 app = FastAPI(title="Dante X Engine", version="0.1.0")
 
@@ -89,13 +94,37 @@ def observation_status():
     return observation_loop.snapshot()
 
 
+def paper_lifecycle(decision, families, options):
+    try:
+        return ShadowLifecycle(validation_recorder.path).advance(decision, families, options)
+    except Exception:
+        return {"status": "WAIT", "authorization": "NONE", "probability": None,
+                "tracking_status": "UNAVAILABLE", "simulation": True,
+                "reason": "Paper lifecycle persistence unavailable; authorization blocked."}
+
+
+@app.get("/v1/signals")
+def signals():
+    return ShadowLifecycle(validation_recorder.path).snapshot()
+
+
 @app.get("/v1/duel")
 def option_duel():
     """SHADOW CE-vs-PE evidence duel across NIFTY and BANKNIFTY."""
+    return evaluate_option_duel()
+
+
+def evaluate_option_duel(nifty=None, bank=None):
+    """Accept the observer's exact samples rather than fetching a second pair."""
     instrument_master.refresh_async()
-    nifty = options_intelligence.snapshot("NIFTY")
-    bank = options_intelligence.snapshot("BANKNIFTY")
+    nifty = nifty if nifty is not None else options_intelligence.snapshot("NIFTY")
+    bank = bank if bank is not None else options_intelligence.snapshot("BANKNIFTY")
     if nifty.get("status") != "OK" or bank.get("status") != "OK":
+        validation_recorder.record_duel(
+            {"state": "DATA_NOT_READY", "readiness": {"live_evidence_ready": False}},
+            {"status": "NO_SETUP", "authorization": "NONE", "reason": "option snapshots unavailable"},
+            {"replay": replay_capture(options={"NIFTY": nifty, "BANKNIFTY": bank}, kind="data_not_ready")},
+        )
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow"}
     nifty_structure = structure_snapshot("NIFTY")
     bank_structure = structure_snapshot("BANKNIFTY")
@@ -140,9 +169,11 @@ def option_duel():
     families["families"]["momentum_velocity"] = cross_index_momentum(n_momentum, b_momentum)
     # Breadth is fetched independently from actual liquid constituents. Fail
     # closed on provider/shape errors; never turn missing breadth into a vote.
+    quote_inputs = {}
     try:
         client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))
         payload = client.full_market_quotes(NIFTY_BREADTH_KEYS)
+        quote_inputs["breadth"] = quote_capture(NIFTY_BREADTH_KEYS, payload)
         raw = (payload.get("data") or {})
         quotes = []
         for item in raw.values() if isinstance(raw, dict) else []:
@@ -165,6 +196,7 @@ def option_duel():
             "reasons":breadth_gate["reasons"],
         }
         sector_payload = client.full_market_quotes(list(SECTOR_INDEX_KEYS.values()))
+        quote_inputs["sector_leadership"] = quote_capture(list(SECTOR_INDEX_KEYS.values()), sector_payload)
         sector_raw = sector_payload.get("data") or {}
         sector_quotes = {}
         for name, key in SECTOR_INDEX_KEYS.items():
@@ -190,6 +222,7 @@ def option_duel():
             "reasons":sector_gate["reasons"],
         }
         vix_payload = client.full_market_quotes([INDIA_VIX_KEY])
+        quote_inputs["volatility"] = quote_capture([INDIA_VIX_KEY], vix_payload)
         vix_raw = vix_payload.get("data") or {}
         vix_item = vix_raw.get(INDIA_VIX_KEY)
         if vix_item is None and isinstance(vix_raw, dict):
@@ -209,6 +242,7 @@ def option_duel():
         else:
             families["families"]["volatility"] = volatility_family({})
     except Exception as exc:
+        quote_inputs["error_type"] = type(exc).__name__
         families["families"]["breadth"] = {
             "state":"UNAVAILABLE","ce":0.0,"pe":0.0,
             "quality":{"usable":0,"required":10},
@@ -240,14 +274,26 @@ def option_duel():
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
+    lifecycle = paper_lifecycle(decision, families, nifty)
+    pulse = asdict(build_market_pulse(symbol="NIFTY", spot=nifty.get("spot"),
+        structure={"state": nifty_structure.get("trend")}, options=nifty,
+        breadth=families["families"].get("breadth", {}), volatility=families["families"].get("volatility", {}),
+        freshness={"eligible": families["readiness"]["live_evidence_ready"]},
+        counterweights=families["readiness"]["blocked_sources"]))
     validation_recorder.record_duel(families, decision, {
         "nifty_spot": nifty.get("spot"), "banknifty_spot": bank.get("spot"),
         "nifty_expiry": nifty.get("expiry"), "banknifty_expiry": bank.get("expiry"),
         "nifty_structure": {k:nifty_structure.get(k) for k in ("last","trend","opening_range_state","session_date","freshness")},
         "banknifty_structure": {k:bank_structure.get(k) for k in ("last","trend","opening_range_state","session_date","freshness")},
+        "replay": replay_capture(
+            options={"NIFTY": nifty, "BANKNIFTY": bank},
+            structures={"NIFTY": nifty_structure, "BANKNIFTY": bank_structure},
+            quotes=quote_inputs, families=families, lifecycle=lifecycle),
     })
     return {
         "decision": decision,
+        "lifecycle": lifecycle,
+        "pulse": pulse,
         "duel": duel(nifty, bank, nifty_structure, bank_structure),
         "evidence_families": families,
         "nifty": {"path": nifty["path_response"], "structure": nifty_structure},
@@ -288,7 +334,12 @@ def options_snapshot(symbol: str):
     if normalized not in {"NIFTY", "BANKNIFTY"}:
         return {"status": "UNSUPPORTED_SYMBOL", "symbol": normalized, "mode": "shadow"}
     instrument_master.refresh_async()
-    return options_intelligence.snapshot(normalized)
+    snapshot = options_intelligence.snapshot(normalized)
+    if snapshot.get("status") == "OK":
+        positioning = asdict(positioning_snapshot(snapshot.get("strikes") or [], spot=snapshot.get("spot")))
+        snapshot["positioning"] = positioning
+        snapshot["positioning"]["scope"] = "Returned ATM neighborhood only; not the full chain"
+    return snapshot
 
 
 @app.get("/v1/market/state")

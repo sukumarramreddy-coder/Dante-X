@@ -11,6 +11,7 @@ from .providers.upstox_master import instrument_master
 from .freshness import market_session
 from .validation_recorder import validation_recorder
 from .outcome_tracker import OutcomeTracker
+from .replay_capture import replay_capture
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -49,20 +50,23 @@ class ObservationLoop:
                     self.state = "MARKET_CLOSED"
                 sleep(60)
                 continue
+            snapshots = {}
             try:
                 instrument_master.refresh_async()
                 # Snapshot both underlyings on the same cadence. The option
                 # intelligence object owns bounded per-symbol history.
-                snapshots = {}
                 for symbol in ("NIFTY", "BANKNIFTY"):
                     snap = options_intelligence.snapshot(symbol)
+                    snapshots[symbol] = snap
                     if snap.get("status") != "OK":
                         raise RuntimeError(f"{symbol}:{snap.get('status')}")
-                    snapshots[symbol] = snap
                 trading_open = bool(market_session(now)["market_open"])
                 # Closing snapshots are context, not fresh trade outcome ticks.
                 if trading_open:
                     self._outcomes.observe(snapshots)
+                    # Evaluate and persist paper lifecycle without requiring an open UI.
+                    from .api import evaluate_option_duel
+                    evaluate_option_duel(snapshots["NIFTY"], snapshots["BANKNIFTY"])
                 # Persist every successful observation, not only /v1/duel calls.
                 # This makes the deployed shadow observer useful unattended:
                 # market snapshots continue flowing to the configured durable
@@ -90,6 +94,7 @@ class ObservationLoop:
                         "banknifty_expiry": snapshots["BANKNIFTY"].get("expiry"),
                         "nifty_path": snapshots["NIFTY"].get("path_response"),
                         "banknifty_path": snapshots["BANKNIFTY"].get("path_response"),
+                        "replay": replay_capture(options=snapshots, kind="observation"),
                     },
                 )
                 persisted_at = datetime.now(IST)
@@ -118,7 +123,8 @@ class ObservationLoop:
                             "authorization": "NONE",
                             "error": error,
                         },
-                        {"observer_error": error},
+                        {"observer_error": error,
+                         "replay": replay_capture(options=snapshots, kind="observation_error")},
                     )
                 except Exception as persist_exc:
                     with self._lock:

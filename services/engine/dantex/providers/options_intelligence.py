@@ -169,6 +169,8 @@ class OptionsIntelligence:
             "atm_put_change_pct": put_pct,
             "last_sample_at": latest.get("iso_ts"),
             "session_date": latest.get("session_date"),
+            "baseline_input": dict(base),
+            "latest_input": dict(latest),
             "note": "Live path evidence only; not trade authorization.",
         }
     def snapshot(self, symbol: str, *, wings: int = 2) -> dict[str, Any]:
@@ -184,6 +186,7 @@ class OptionsIntelligence:
         credentials = UpstoxCredentials.from_env()
         client = UpstoxRestClient(UpstoxConfig(access_token=credentials.analytics_token))
         payload = client.option_chain(underlying_key, expiry_date=expiry)
+        received_at = datetime.now(ZoneInfo("Asia/Kolkata")).isoformat()
         rows = payload.get("data") or []
         if not rows:
             return {
@@ -229,6 +232,13 @@ class OptionsIntelligence:
                 "selection": "nearest-expiry ATM +/- 2 strikes",
                 "metrics": ["spread_pct", "oi_change", "oi_change_pct", "volume", "greeks", "execution_score"],
                 "note": "execution_score measures tradability only, not bullish/bearish direction",
+            },
+            "source": {
+                "endpoint": "/v2/option/chain",
+                "received_at": received_at,
+                "timestamp_semantics": "local receipt time; exchange timestamp not supplied by this adapter",
+                "wings": wings,
+                "available_expiries": list(expiries),
             },
             "status": "OK",
             "mode": "shadow",

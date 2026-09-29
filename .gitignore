@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+*.egg-info/
 # Node
 node_modules/
 .next/
@@ -17,3 +18,5 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+# Local historical research archives (never live evidence or source assets).
+/local-data/
