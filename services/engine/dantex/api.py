@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from math import isfinite
 from dataclasses import asdict
 from urllib.error import HTTPError, URLError
@@ -22,13 +23,32 @@ from .providers.structure_live import structure_snapshot
 from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
+from .challengers import challenger_status
+from .learning_runtime import learning_window, collect_learning
 from .validation_recorder import validation_recorder
+from .expert_runtime import DecisionRuntime
 from .shadow_lifecycle import ShadowLifecycle
 from .positioning import positioning_snapshot
 from .market_pulse import build_market_pulse
 from .replay_capture import quote_capture, replay_capture
 
-app = FastAPI(title="Dante X Engine", version="0.1.0")
+decision_runtime = DecisionRuntime(validation_recorder)
+
+
+def review_expert_safely(options, structures, families):
+    try:
+        decision_runtime.evaluate(options, structures, families)
+    except Exception:
+        # An optional review must never interrupt the established deterministic pipeline.
+        decision_runtime.last_error = "EXPERT_REVIEW_UNAVAILABLE"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_shadow_observers()
+    yield
+
+
+app = FastAPI(title="Dante X Engine", version="0.1.0", lifespan=lifespan)
 
 def _previous_close(item):
     """Use valid prior-close data; intraday OHLC close is not prior close."""
@@ -48,7 +68,6 @@ def _previous_close(item):
     return None
 
 
-@app.on_event("startup")
 def start_shadow_observers():
     """Start read-only background observers with the service process."""
     core_live_feed.start()
@@ -60,7 +79,7 @@ def start_shadow_observers():
 def health():
     observer = observation_loop.snapshot()
     validation = validation_recorder.status()
-    live = observer.get("freshness") == "LIVE"
+    live = bool(observer.get("live_observation_eligible"))
     return {
         "status": "ok" if live else "degraded",
         "service": "dante-x-engine",
@@ -84,7 +103,7 @@ def live_structure(symbol: str):
     try:
         return structure_snapshot(normalized)
     except Exception as exc:
-        return {"symbol": normalized, "status": "DEGRADED", "error": f"{type(exc).__name__}: {str(exc)[:180]}", "mode": "shadow"}
+        return {"symbol": normalized, "status": "DEGRADED", "error": type(exc).__name__, "mode": "shadow"}
 
 
 @app.get("/v1/observation/status")
@@ -111,6 +130,18 @@ def signals():
 @app.get("/v1/duel")
 def option_duel():
     """SHADOW CE-vs-PE evidence duel across NIFTY and BANKNIFTY."""
+    return build_option_duel()
+
+
+def build_option_duel(snapshots=None):
+    """Shared by the API and background learner; reuses an observer snapshot."""
+    instrument_master.refresh_async()
+    nifty = snapshots["NIFTY"] if snapshots else options_intelligence.snapshot("NIFTY")
+    bank = snapshots["BANKNIFTY"] if snapshots else options_intelligence.snapshot("BANKNIFTY")
+    if nifty.get("status") != "OK" or bank.get("status") != "OK":
+        review_expert_safely({"NIFTY": nifty, "BANKNIFTY": bank}, {}, {})
+        return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow",
+                "decision": shadow_decision({}, {"live_evidence_ready": False}, {})}
     return evaluate_option_duel()
 
 
@@ -133,8 +164,8 @@ def evaluate_option_duel(nifty=None, bank=None):
     families["freshness"] = {"session": session}
     n_path = nifty.get("path_response") or {}
     b_path = bank.get("path_response") or {}
-    n_options_gate = freshness_gate(source="NIFTY_OPTIONS", timestamp=n_path.get("last_sample_at"), session_date=n_path.get("session_date"))
-    b_options_gate = freshness_gate(source="BANKNIFTY_OPTIONS", timestamp=b_path.get("last_sample_at"), session_date=b_path.get("session_date"))
+    n_options_gate = freshness_gate(source="NIFTY_OPTIONS", timestamp=n_path.get("last_sample_at"), session_date=n_path.get("session_date"), provider_fresh=nifty.get("evidence_eligible", False))
+    b_options_gate = freshness_gate(source="BANKNIFTY_OPTIONS", timestamp=b_path.get("last_sample_at"), session_date=b_path.get("session_date"), provider_fresh=bank.get("evidence_eligible", False))
     families["freshness"]["nifty_options"] = n_options_gate
     families["freshness"]["banknifty_options"] = b_options_gate
     if not (n_options_gate["eligible"] and b_options_gate["eligible"]):
@@ -259,7 +290,9 @@ def evaluate_option_duel(nifty=None, bank=None):
             "reasons":[f"India VIX provider unavailable: {type(exc).__name__}"],
         }
     # Derivatives are one consolidated family: OI/PCR/IV never become separate votes.
-    if n_options_gate["eligible"] and b_options_gate["eligible"]:
+    if (n_options_gate["eligible"] and b_options_gate["eligible"]
+            and nifty.get("derivatives_evidence_eligible") is True
+            and bank.get("derivatives_evidence_eligible") is True):
         families["families"]["derivatives_positioning"] = derivatives_positioning_family(nifty, bank)
     else:
         families["families"]["derivatives_positioning"] = {
@@ -274,6 +307,7 @@ def evaluate_option_duel(nifty=None, bank=None):
     families["family_counts"] = consensus["family_counts"]
     families["readiness"] = system_readiness(families["freshness"], families["families"])
     decision = shadow_decision(families, families["readiness"], nifty)
+    # Additive shadow review; never changes the existing learner or manual signal.
     lifecycle = paper_lifecycle(decision, families, nifty)
     pulse = asdict(build_market_pulse(symbol="NIFTY", spot=nifty.get("spot"),
         structure={"state": nifty_structure.get("trend")}, options=nifty,
@@ -290,6 +324,11 @@ def evaluate_option_duel(nifty=None, bank=None):
             structures={"NIFTY": nifty_structure, "BANKNIFTY": bank_structure},
             quotes=quote_inputs, families=families, lifecycle=lifecycle),
     })
+    review_expert_safely(
+        {"NIFTY": nifty, "BANKNIFTY": bank},
+        {"NIFTY": nifty_structure, "BANKNIFTY": bank_structure},
+        families,
+    )
     return {
         "decision": decision,
         "lifecycle": lifecycle,
@@ -300,6 +339,52 @@ def evaluate_option_duel(nifty=None, bank=None):
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
     }
+
+
+def run_learning_cycle(snapshots, now=None):
+    window = learning_window()
+    active = market_session(now)["market_open"]
+    payload = build_option_duel(snapshots) if active else {}
+    if not active and not window.pending(now):
+        return window.report(now)
+    client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))
+    # Stamp prediction after evidence collection, never at the start of the
+    # potentially slow provider requests.
+    return collect_learning(payload.get("decision") or {}, client, window=window)
+
+
+@app.get("/v1/calibration/learning")
+def calibration_learning():
+    return learning_window().report()
+
+
+@app.get("/v1/decision/current")
+def current_decision():
+    """Observer-produced result. UI polling never triggers paid expert calls."""
+    return decision_runtime.current()
+
+
+@app.get("/v1/decision/history")
+def decision_history(limit: int = 50):
+    return {"schema_version": "1.0", "mode": "shadow", "evaluations": decision_runtime.history(limit)}
+
+
+@app.get("/v1/expert/status")
+def expert_status():
+    return decision_runtime.provider.status()
+
+
+@app.get("/v1/signals/manual")
+def manual_signal():
+    """Live publication only after OOS gates pass; no broker order capability."""
+    payload = build_option_duel()
+    return learning_window().publish(payload.get("decision") or {})
+
+
+@app.get("/v1/challengers/status")
+def probability_challengers():
+    """Read-only artifact availability; no training or model upload surface."""
+    return challenger_status()
 
 
 @app.get("/v1/validation/recent")
@@ -320,7 +405,7 @@ def validation_status():
     except Exception as exc:
         status=validation_recorder.status()
         status["write_test"]="FAILED"
-        status["write_error"]=f"{type(exc).__name__}: {str(exc)[:180]}"
+        status["write_error"]=type(exc).__name__
         return status
     status=validation_recorder.status()
     status["write_test"]="OK"
@@ -395,8 +480,8 @@ def upstox_diagnostic():
             body = json.loads(exc.read().decode("utf-8", errors="replace"))
             errors = body.get("errors") or []
             if errors and isinstance(errors[0], dict):
-                upstox_error_code = errors[0].get("errorCode") or errors[0].get("error_code")
-                upstox_error_message = errors[0].get("message")
+                upstox_error_code = None  # Do not echo untrusted provider bodies.
+                upstox_error_message = "provider rejected request"
         except Exception:
             pass
         return {

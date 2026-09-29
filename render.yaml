@@ -6,12 +6,26 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
+      - key: DANTEX_OPENAI_ENABLED
+        value: "false"
+      - key: DANTEX_OPENAI_MODEL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DANTEX_OPENAI_TIMEOUT
+        value: "8"
+      - key: DANTEX_OPENAI_MAX_CALLS_PER_MINUTE
+        value: "2"
+      - key: DANTEX_OPENAI_INTERVAL_SECONDS
+        value: "60"
       - key: DANTEX_MODE
         value: shadow
       - key: UPSTOX_ANALYTICS_TOKEN
         sync: false
       - key: DANTEX_VALIDATION_DB
         value: /tmp/dantex-validation.sqlite3
+      - key: DANTEX_VALIDATION_DURABLE
+        value: "false"
       - key: DANTEX_VALIDATION_REST_URL
         sync: false
       - key: DANTEX_VALIDATION_REST_KEY

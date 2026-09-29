@@ -12,5 +12,5 @@ def test_sufficient_band_can_be_evaluated_for_publication():
     samples = [CalibrationSample(72, i % 2 == 0) for i in range(100)]
     band = next(b for b in calibration_bands(samples) if b.lower == 70)
     assert band.samples == 100
-    assert band.publishable
+    assert not band.publishable  # Count alone cannot prove OOS calibration.
     assert band.observed_rate == 50

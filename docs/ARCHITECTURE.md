@@ -46,11 +46,18 @@ Once a setup reaches ARMED, its trigger is not moved merely because price approa
 
 Live Confirmation, Path Match and Potential Left are deterministic scores. They are not probabilities.
 
-A probability field becomes available only after:
+A **calibrated** probability field becomes available only after:
 - sufficient historical samples,
 - walk-forward/out-of-sample testing,
 - calibration by probability band,
 - regime and instrument-family checks,
 - net-of-cost evaluation.
 
-Until then the API must return probability as unavailable.
+Until then calibrated probability remains unavailable and `calibration_ready=false`.
+The shadow decision may publish an explicitly **PROVISIONAL**, bounded heuristic
+estimate for review, with formula, input states, limitations and zero validated
+sample support. This estimate cannot alter authorization, readiness or sizing.
+See [the probability/challenger contract](PROBABILITY_CHALLENGERS.md).
+
+For the distinction between implemented foundation modules, the deployed
+diagnostic API, and pending app wiring, see [Pre-App Integrity Audit](PRE_APP_INTEGRITY_AUDIT.md).

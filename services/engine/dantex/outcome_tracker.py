@@ -20,6 +20,7 @@ class OutcomeTracker:
             if not key:continue
             premium=None
             for snap in option_snapshots.values():
+                if snap.get("evidence_eligible") is not True:continue
                 for row in snap.get("strikes") or []:
                     for legname in ("call","put"):
                         leg=row.get(legname) or {}

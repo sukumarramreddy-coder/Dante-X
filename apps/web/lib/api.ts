@@ -6,10 +6,10 @@ export async function getRadar(): Promise<RadarResponse | null> {
   try {
     const response = await fetch(ENGINE + "/health", { cache: "no-store" });
     if (!response.ok) return null;
-    const health = await response.json();
+    await response.json();
     return {
-      mode: health.mode ?? "shadow",
-      probability_calibrated: Boolean(health.probability_calibrated),
+      mode: "shadow",
+      probability_calibrated: false,
       candidates: [],
     };
   } catch {

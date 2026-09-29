@@ -9,3 +9,7 @@ A band must meet a minimum sample requirement before it can even be considered p
 Example: if signals displayed in a 70–79 score band reach target-before-stop only 54% of the time, Dante X must not label them “70% probability.”
 
 Calibration is versioned. A material model change invalidates stale calibration until revalidated.
+
+The current band helper reports descriptive counts and observed rates only;
+`publishable` remains false regardless of sample count. No archive, synthetic
+sample, diagnostic heartbeat, or temporary SQLite write can unlock publication.

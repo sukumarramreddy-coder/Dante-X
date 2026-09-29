@@ -6,6 +6,7 @@ from threading import Lock, Thread
 from typing import Any
 
 from .credentials import UpstoxCredentials
+from .tick_integrity import valid_tick, tick_fresh
 
 CORE_KEYS = ("NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank")
 
@@ -91,25 +92,18 @@ class CoreLiveFeed:
                             continue
                         beat = self.instruments[key]
                         beat.messages += 1
-                        beat.received_at = now
-                        ltpc = _find_ltpc(payload)
-                        if ltpc is None:
+                        tick = valid_tick(_find_ltpc(payload), now)
+                        if tick is None:
+                            self.state = "STALE"
                             continue
-                        try:
-                            beat.ltp = float(ltpc["ltp"])
-                        except (TypeError, ValueError, KeyError):
-                            pass
-                        try:
-                            raw = ltpc.get("ltt")
-                            beat.exchange_timestamp_ms = int(raw) if raw is not None else None
-                        except (TypeError, ValueError):
-                            beat.exchange_timestamp_ms = None
-                    if all(x.ltp is not None for x in self.instruments.values()):
+                        beat.ltp, beat.exchange_timestamp_ms = tick
+                        beat.received_at = now
+                    if all(tick_fresh(x.ltp, x.exchange_timestamp_ms, x.received_at, now) for x in self.instruments.values()):
                         self.state = "LIVE"
 
             def on_error(error: Any) -> None:
                 with self._lock:
-                    self.error = str(error)[:240]
+                    self.error = "provider stream error"
                     self.state = "STALE"
 
             def on_close(*_args: Any) -> None:
@@ -125,7 +119,7 @@ class CoreLiveFeed:
             streamer.connect()
         except Exception as exc:
             with self._lock:
-                self.error = f"{type(exc).__name__}: {str(exc)[:180]}"
+                self.error = type(exc).__name__
                 self.state = "OFFLINE"
                 self.connected = False
 
@@ -136,7 +130,7 @@ class CoreLiveFeed:
             fresh = True
             for key, beat in self.instruments.items():
                 age = max(0, int((now - beat.received_at).total_seconds() * 1000)) if beat.received_at else None
-                if age is None or age > 15_000:
+                if not tick_fresh(beat.ltp, beat.exchange_timestamp_ms, beat.received_at, now):
                     fresh = False
                 rows[key] = {
                     "ltp": beat.ltp,
@@ -146,7 +140,7 @@ class CoreLiveFeed:
                     "messages": beat.messages,
                 }
             state = self.state
-            if state == "LIVE" and not fresh:
+            if state == "LIVE" and (not fresh or not self.connected):
                 state = "STALE"
             return {
                 "provider": "upstox",

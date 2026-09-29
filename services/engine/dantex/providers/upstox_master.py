@@ -41,7 +41,7 @@ class InstrumentMaster:
                 self.error = None
         except Exception as exc:
             with self._lock:
-                self.error = f"{type(exc).__name__}: {str(exc)[:180]}"
+                self.error = type(exc).__name__
         finally:
             with self._lock:
                 self._loading = False

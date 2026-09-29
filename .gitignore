@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+work/
 .pytest_cache/
 .venv/
 venv/
@@ -18,5 +20,15 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+<<<<<<< HEAD
 # Local historical research archives (never live evidence or source assets).
 /local-data/
+=======
+# Local historical evidence archives (never commit market datasets).
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+*.tsbuildinfo
+audit-results/
+>>>>>>> origin/build/foundation

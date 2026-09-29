@@ -1,8 +1,12 @@
 .git
 .github
+work
+**/node_modules
+**/.next
 **/__pycache__
 **/.pytest_cache
-**/node_modules
-.env
-.env.*
-*.db
+**/*.egg-info
+**/.env
+**/.env.*
+**/*.sqlite3*
+**/*.db

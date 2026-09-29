@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import isfinite
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -12,6 +13,7 @@ from .credentials import UpstoxCredentials
 from .upstox import UpstoxConfig
 from .upstox_master import instrument_master
 from .upstox_rest import UpstoxRestClient
+from .verified_option_quotes import verified_prices
 
 
 UNDERLYINGS = {
@@ -22,7 +24,8 @@ UNDERLYINGS = {
 
 def _num(value: Any) -> float | None:
     try:
-        return float(value) if value is not None else None
+        number = float(value) if value is not None and not isinstance(value, bool) else None
+        return number if number is not None and isfinite(number) else None
     except (TypeError, ValueError):
         return None
 
@@ -218,7 +221,23 @@ class OptionsIntelligence:
         ordered = sorted(parsed, key=lambda x: x["strike"])
         atm_index = next(i for i, x in enumerate(ordered) if x["strike"] == atm)
         selected = ordered[max(0, atm_index - wings): atm_index + wings + 1]
-        path = self._track(symbol, spot, atm, selected, expiry=expiry)
+        eligible = False
+        quote_timestamp = None
+        try:
+            keys = [underlying_key] + [row[side]["instrument_key"] for row in selected for side in ("call", "put")]
+            selected, spot, quote_timestamp = verified_prices(selected, underlying_key, client.full_market_quotes(keys))
+            for row in selected:
+                for side in ("call", "put"):
+                    row[side]["quality"] = _quality(row[side])
+            eligible = True
+        except Exception:
+            # A stale path must not become the baseline of a later fresh path.
+            with self._lock:
+                self._history.pop(symbol, None)
+        path = self._track(symbol, spot, atm, selected, expiry=expiry) if eligible else {"state": "STALE_CONTEXT"}
+        if eligible:
+            path["last_sample_at"] = quote_timestamp
+            path["session_date"] = datetime.fromisoformat(quote_timestamp).astimezone(ZoneInfo("Asia/Kolkata")).date().isoformat()
         return {
             "symbol": symbol,
             "underlying_key": underlying_key,
@@ -241,6 +260,9 @@ class OptionsIntelligence:
                 "available_expiries": list(expiries),
             },
             "status": "OK",
+            "evidence_eligible": eligible,
+            "derivatives_evidence_eligible": False,
+            "freshness_reason": "verified V3 quote prices/depth; chain Greeks remain context" if eligible else "option quote freshness not proven",
             "mode": "shadow",
         }
 
