@@ -23,6 +23,7 @@ from .freshness import gate as freshness_gate, market_session, system_readiness
 from .derivatives import derivatives_positioning_family
 from .decision import shadow_decision
 from .challengers import challenger_status
+from .learning_runtime import learning_window, collect_learning
 from .validation_recorder import validation_recorder
 
 @asynccontextmanager
@@ -99,9 +100,14 @@ def observation_status():
 @app.get("/v1/duel")
 def option_duel():
     """SHADOW CE-vs-PE evidence duel across NIFTY and BANKNIFTY."""
+    return build_option_duel()
+
+
+def build_option_duel(snapshots=None):
+    """Shared by the API and background learner; reuses an observer snapshot."""
     instrument_master.refresh_async()
-    nifty = options_intelligence.snapshot("NIFTY")
-    bank = options_intelligence.snapshot("BANKNIFTY")
+    nifty = snapshots["NIFTY"] if snapshots else options_intelligence.snapshot("NIFTY")
+    bank = snapshots["BANKNIFTY"] if snapshots else options_intelligence.snapshot("BANKNIFTY")
     if nifty.get("status") != "OK" or bank.get("status") != "OK":
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow",
                 "decision": shadow_decision({}, {"live_evidence_ready": False}, {})}
@@ -233,7 +239,9 @@ def option_duel():
             "reasons":[f"India VIX provider unavailable: {type(exc).__name__}"],
         }
     # Derivatives are one consolidated family: OI/PCR/IV never become separate votes.
-    if n_options_gate["eligible"] and b_options_gate["eligible"]:
+    if (n_options_gate["eligible"] and b_options_gate["eligible"]
+            and nifty.get("derivatives_evidence_eligible") is True
+            and bank.get("derivatives_evidence_eligible") is True):
         families["families"]["derivatives_positioning"] = derivatives_positioning_family(nifty, bank)
     else:
         families["families"]["derivatives_positioning"] = {
@@ -262,6 +270,30 @@ def option_duel():
         "banknifty": {"path": bank["path_response"], "structure": bank_structure},
         "mode": "shadow",
     }
+
+
+def run_learning_cycle(snapshots, now=None):
+    window = learning_window()
+    active = market_session(now)["market_open"]
+    payload = build_option_duel(snapshots) if active else {}
+    if not active and not window.pending(now):
+        return window.report(now)
+    client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))
+    # Stamp prediction after evidence collection, never at the start of the
+    # potentially slow provider requests.
+    return collect_learning(payload.get("decision") or {}, client, window=window)
+
+
+@app.get("/v1/calibration/learning")
+def calibration_learning():
+    return learning_window().report()
+
+
+@app.get("/v1/signals/manual")
+def manual_signal():
+    """Live publication only after OOS gates pass; no broker order capability."""
+    payload = build_option_duel()
+    return learning_window().publish(payload.get("decision") or {})
 
 
 @app.get("/v1/challengers/status")

@@ -114,10 +114,14 @@ produce orders. These hypothetical objectives are not realized profit forecasts.
 
 ## Promotion requirements
 
+The separate [30-session learning window](CALIBRATION_LEARNING.md) now provides
+an automatic, evidence-gated route for its small frequency calibrator to publish
+manual signals. It does not promote the unconfigured model challengers below.
+
 Promotion requires separate manual review of artifact provenance, chronological
 purged walk-forward comparisons, same-contract outcomes, cost-aware results,
 calibration stability by regime and sufficient independent samples. This change
-does not implement a promotion switch, live training, model-upload endpoint,
+does not implement a challenger promotion switch, model-upload endpoint,
 broker execution or automatic self-adaptation.
 
 ## Verification

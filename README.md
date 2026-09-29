@@ -36,6 +36,11 @@ cannot authorize execution. Offline challenger adapters, causal regime filtering
 triple-barrier labels, calibration metrics and a constrained optimizer benchmark
 are described in [the probability/challenger contract](docs/PROBABILITY_CHALLENGERS.md).
 
+The [30-session calibration window](docs/CALIBRATION_LEARNING.md) learns from
+20 qualifying sessions and validates on 10 untouched sessions. Its dashboard
+shows learned bands, outcomes, metrics and blockers. Only passing validation can
+enable manual signals; broker orders remain disabled.
+
 ## Safety and execution
 
 - Read-only market intelligence.

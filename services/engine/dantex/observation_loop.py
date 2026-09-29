@@ -29,6 +29,7 @@ class ObservationLoop:
     last_sample_at: datetime | None = None
     last_error: str | None = None
     last_persisted_at: datetime | None = None
+    learning_error: str | None = None
     _started: bool = field(default=False, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
     _outcomes: OutcomeTracker = field(default_factory=lambda: OutcomeTracker(validation_recorder), repr=False)
@@ -93,6 +94,14 @@ class ObservationLoop:
                     },
                 )
                 persisted_at = datetime.now(IST)
+                # Model collection is autonomous, not dependent on UI polling.
+                # A learner/provider failure must not stop market recording.
+                try:
+                    from .api import run_learning_cycle
+                    run_learning_cycle(snapshots, now)
+                    self.learning_error = None
+                except Exception as exc:
+                    self.learning_error = type(exc).__name__
                 with self._lock:
                     self.samples += 1
                     self.last_sample_at = persisted_at
@@ -160,6 +169,7 @@ class ObservationLoop:
                 "durable_sink_error": external.get("last_error"),
                 "durable_sink_failures": external.get("failures", 0),
                 "last_error": self.last_error,
+                "learning_error": self.learning_error,
                 "market_hours": "09:15-15:30 Asia/Kolkata weekdays",
                 "recording_hours": "09:15-15:39 inclusive Asia/Kolkata weekdays",
                 "mode": "shadow",
