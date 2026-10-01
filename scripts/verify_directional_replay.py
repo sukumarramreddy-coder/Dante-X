@@ -1,14 +1,14 @@
 """Replay persisted directional and four-way projections without modifying evidence."""
 import argparse
-from collections import Counter
 import json
-from pathlib import Path
 import sqlite3
 import sys
+from collections import Counter
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'services' / 'engine'))
-from dantex.expert_engine import four_way  # noqa: E402
-from dantex.probability import evidence_prior  # noqa: E402
+from dantex.expert_engine import four_way
+from dantex.probability import evidence_prior
 
 
 def verify(path):
