@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from .credentials import UpstoxCredentials
 from .upstox import UpstoxConfig
 from .upstox_rest import UpstoxRestClient
+from ..probability import finite_number
 
 IST = ZoneInfo("Asia/Kolkata")
 KEYS = {"NIFTY": "NSE_INDEX|Nifty 50", "BANKNIFTY": "NSE_INDEX|Nifty Bank"}
@@ -45,6 +46,9 @@ def _atr(rows: list[dict[str, Any]], period: int = 14) -> float | None:
 def _vwap(rows: list[dict[str, Any]]) -> tuple[float | None, str]:
     # NSE index candles commonly have no meaningful traded volume. Never fake
     # VWAP from zero-volume index bars; expose that limitation explicitly.
+    if any(not all(finite_number(x.get(k)) for k in ("volume", "high", "low", "close"))
+           or x["volume"] < 0 or not 0 < x["low"] <= x["close"] <= x["high"] for x in rows):
+        return None, "UNAVAILABLE_INVALID_CANDLE_INPUT"
     denom = sum(x["volume"] for x in rows)
     if denom <= 0:
         return None, "UNAVAILABLE_NO_INDEX_VOLUME"

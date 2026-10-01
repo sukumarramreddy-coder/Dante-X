@@ -36,6 +36,13 @@ def evidence_prior(families: dict, readiness: dict) -> dict:
         "fresh_evidence": fresh, "evidence_strength": round(abs(strength), 4),
         "coverage": round(sum(s in {"CE", "PE", "NEUTRAL", "CONFLICT"}
                               for s in states.values()) / len(FAMILIES), 4),
+        "data_quality": "FRESH" if fresh else "STALE_OR_MISSING",
+        "blocked_sources": readiness.get("blocked_sources") or [],
+        "data_reasons": [f"{name}: {reason}" for name, family in inputs.items()
+                         for reason in (family.get("reasons") or [])
+                         if family.get("state") in {"UNAVAILABLE", "STALE_CONTEXT", "CONFLICT"}],
+        "missing_families": [name for name, state in states.items()
+                             if state in {"UNAVAILABLE", "STALE_CONTEXT"}],
         "directional": {"ce": p_ce, "pe": round(100 - p_ce, 2),
                         "meaning": "heuristic relative directional preference; not option profit odds"},
         "regime": {"status": "UNAVAILABLE", "confidence": None},

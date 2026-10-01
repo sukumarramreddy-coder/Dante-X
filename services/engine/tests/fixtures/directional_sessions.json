@@ -1,0 +1,3111 @@
+[
+  {
+    "id": 2,
+    "at": "2026-09-30T10:27:09.216475+05:30",
+    "state": "CE_EVIDENCE",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "momentum_velocity",
+        "breadth",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "DETECTED",
+      "authorization": "SHADOW_ONLY",
+      "direction": "CE",
+      "contract": {
+        "strike": 22800.0,
+        "expiry": "2026-10-06",
+        "instrument_key": "NSE_FO|40715"
+      },
+      "contract_quality": 98.6,
+      "trade_quality": 87.4,
+      "reference_entry": 147.7,
+      "reference_stop": 125.54,
+      "reference_t1": 177.24,
+      "reference_t2": 199.4,
+      "reference_rr_t1": 1.33,
+      "probability": 39.29,
+      "note": "Trade/contract quality is separate from direction. Provisional probability is review-only; ARMED requires structural trigger, sizing, costs and validation.",
+      "probability_status": "PROVISIONAL",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PROVISIONAL",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "CE",
+          "options_response": "NEUTRAL",
+          "cross_index": "NEUTRAL",
+          "momentum_velocity": "CE",
+          "breadth": "CE",
+          "sector_leadership": "CE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.5,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 57.5,
+          "pe": 42.5,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": {
+          "probability": 39.29,
+          "event": "T1 before stop within 30 minutes or session close",
+          "horizon_minutes": 30,
+          "entry": 147.7,
+          "stop": 125.54,
+          "target": 177.24,
+          "contract": {
+            "strike": 22800.0,
+            "expiry": "2026-10-06",
+            "instrument_key": "NSE_FO|40715"
+          },
+          "barrier_prior": 0.428627,
+          "method": "clip(0.8 * (entry-stop)/(target-stop) + 0.10 * signed_family_strength, 0.20, 0.60)",
+          "complement": "stop OR timeout without T1; not P(stop before T1)",
+          "costs_included": false,
+          "fill_assumed": false,
+          "limitations": "Reference premium barriers only; no slippage, fees, IV/theta model or calibrated horizon dynamics"
+        },
+        "target_status": "PROVISIONAL"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CE_EVIDENCE",
+      "families": {
+        "structure_location": {
+          "state": "CE",
+          "ce": 2.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "CE",
+            "banknifty": "CE"
+          },
+          "reasons": [
+            "NIFTY: bullish EMA alignment",
+            "NIFTY: above opening-range high",
+            "NIFTY: above prior-day high",
+            "BANKNIFTY: bullish EMA alignment",
+            "BANKNIFTY: above opening-range high",
+            "BANKNIFTY: above prior-day high"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path BUILDING_BASELINE",
+            "BANKNIFTY: option path BUILDING_BASELINE"
+          ]
+        },
+        "cross_index": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index baseline unavailable"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "reasons": [
+            "NIFTY and BANKNIFTY momentum confirm up"
+          ]
+        },
+        "breadth": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 12,
+            "decliners": 3,
+            "flat": 0,
+            "participation_balance": 0.6,
+            "median_change_pct": 0.63
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "broad constituent participation up"
+          ]
+        },
+        "sector_leadership": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "metrics": {
+            "advancing_sectors": 6,
+            "declining_sectors": 2,
+            "participation_balance": 0.5,
+            "leaders": [
+              [
+                "IT",
+                2.603
+              ],
+              [
+                "AUTO",
+                1.07
+              ],
+              [
+                "ENERGY",
+                0.955
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                0.321
+              ],
+              [
+                "METAL",
+                -0.358
+              ],
+              [
+                "PHARMA",
+                -0.933
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership positive"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 12.97,
+            "change_pct": -3.281,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 4,
+        "pe": 0,
+        "conflict": 0,
+        "directional": 4
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-09-30T10:27:08.764922+05:30",
+          "session_date": "2026-09-30",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:08.764922+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:08.764922+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:08.764922+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:08.764922+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:08.909217+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:09.061084+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:27:09.196657+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "momentum_velocity",
+          "breadth",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "at": "2026-09-30T10:28:18.971882+05:30",
+    "state": "CONFLICT",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "options_response",
+        "cross_index",
+        "breadth",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "NO_SETUP",
+      "authorization": "NONE",
+      "reason": "family consensus CONFLICT",
+      "probability": null,
+      "probability_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PRIOR_ONLY",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "CE",
+          "options_response": "PE",
+          "cross_index": "PE",
+          "momentum_velocity": "NEUTRAL",
+          "breadth": "CE",
+          "sector_leadership": "CE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.0,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 50.0,
+          "pe": 50.0,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": null,
+        "target_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CONFLICT",
+      "families": {
+        "structure_location": {
+          "state": "CE",
+          "ce": 2.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "CE",
+            "banknifty": "CE"
+          },
+          "reasons": [
+            "NIFTY: bullish EMA alignment",
+            "NIFTY: above opening-range high",
+            "NIFTY: above prior-day high",
+            "BANKNIFTY: above opening-range high",
+            "BANKNIFTY: above prior-day high"
+          ]
+        },
+        "options_response": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 2.0,
+          "components": {
+            "nifty": "PE",
+            "banknifty": "PE"
+          },
+          "reasons": [
+            "NIFTY: option path PE_STRENGTHENING",
+            "BANKNIFTY: option path PE_STRENGTHENING"
+          ]
+        },
+        "cross_index": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "reasons": [
+            "both index paths down"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index momentum not confirmed"
+          ]
+        },
+        "breadth": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 12,
+            "decliners": 3,
+            "flat": 0,
+            "participation_balance": 0.6,
+            "median_change_pct": 0.601
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "broad constituent participation up"
+          ]
+        },
+        "sector_leadership": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "metrics": {
+            "advancing_sectors": 6,
+            "declining_sectors": 2,
+            "participation_balance": 0.5,
+            "leaders": [
+              [
+                "IT",
+                2.594
+              ],
+              [
+                "AUTO",
+                1.115
+              ],
+              [
+                "ENERGY",
+                0.939
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                0.333
+              ],
+              [
+                "METAL",
+                -0.424
+              ],
+              [
+                "PHARMA",
+                -0.933
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership positive"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 12.99,
+            "change_pct": -3.132,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 3,
+        "pe": 2,
+        "conflict": 0,
+        "directional": 5
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-09-30T10:28:18.247609+05:30",
+          "session_date": "2026-09-30",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.247609+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.247609+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.247609+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.247609+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.506112+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.728785+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T10:28:18.967390+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "options_response",
+          "cross_index",
+          "breadth",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 1873,
+    "at": "2026-09-30T14:07:38.491815+05:30",
+    "state": "CE_EVIDENCE",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "cross_index"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "DETECTED",
+      "authorization": "SHADOW_ONLY",
+      "direction": "CE",
+      "contract": {
+        "strike": 22750.0,
+        "expiry": "2026-10-06",
+        "instrument_key": "NSE_FO|40712"
+      },
+      "contract_quality": 98.1,
+      "trade_quality": 87.0,
+      "reference_entry": 146.25,
+      "reference_stop": 124.31,
+      "reference_t1": 175.5,
+      "reference_t2": 197.44,
+      "reference_rr_t1": 1.33,
+      "probability": 36.79,
+      "note": "Trade/contract quality is separate from direction. Provisional probability is review-only; ARMED requires structural trigger, sizing, costs and validation.",
+      "probability_status": "PROVISIONAL",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PROVISIONAL",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "CE",
+          "options_response": "NEUTRAL",
+          "cross_index": "CE",
+          "momentum_velocity": "NEUTRAL",
+          "breadth": "NEUTRAL",
+          "sector_leadership": "NEUTRAL",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.25,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 53.75,
+          "pe": 46.25,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": {
+          "probability": 36.79,
+          "event": "T1 before stop within 30 minutes or session close",
+          "horizon_minutes": 30,
+          "entry": 146.25,
+          "stop": 124.31,
+          "target": 175.5,
+          "contract": {
+            "strike": 22750.0,
+            "expiry": "2026-10-06",
+            "instrument_key": "NSE_FO|40712"
+          },
+          "barrier_prior": 0.428599,
+          "method": "clip(0.8 * (entry-stop)/(target-stop) + 0.10 * signed_family_strength, 0.20, 0.60)",
+          "complement": "stop OR timeout without T1; not P(stop before T1)",
+          "costs_included": false,
+          "fill_assumed": false,
+          "limitations": "Reference premium barriers only; no slippage, fees, IV/theta model or calibrated horizon dynamics"
+        },
+        "target_status": "PROVISIONAL"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CE_EVIDENCE",
+      "families": {
+        "structure_location": {
+          "state": "CE",
+          "ce": 2.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "CE",
+            "banknifty": "CE"
+          },
+          "reasons": [
+            "NIFTY: above opening-range high",
+            "BANKNIFTY: above opening-range high",
+            "BANKNIFTY: above prior-day high"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path NO_EDGE",
+            "BANKNIFTY: option path CONFLICT"
+          ]
+        },
+        "cross_index": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "reasons": [
+            "both index paths up"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index momentum not confirmed"
+          ]
+        },
+        "breadth": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 9,
+            "decliners": 6,
+            "flat": 0,
+            "participation_balance": 0.2,
+            "median_change_pct": 0.488
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "constituent participation mixed"
+          ]
+        },
+        "sector_leadership": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancing_sectors": 5,
+            "declining_sectors": 3,
+            "participation_balance": 0.25,
+            "leaders": [
+              [
+                "REALTY",
+                1.829
+              ],
+              [
+                "BANK",
+                1.389
+              ],
+              [
+                "AUTO",
+                1.032
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                -0.15
+              ],
+              [
+                "METAL",
+                -0.583
+              ],
+              [
+                "PHARMA",
+                -1.044
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "sector leadership mixed"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 13.08,
+            "change_pct": -2.461,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 2,
+        "pe": 0,
+        "conflict": 0,
+        "directional": 2
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-09-30T14:07:37.864804+05:30",
+          "session_date": "2026-09-30",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:37.864804+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:37.864804+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:37.864804+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:37.864804+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:38.071772+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:38.265279+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T14:07:38.491815+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "cross_index"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 2553,
+    "at": "2026-09-30T15:29:36.980784+05:30",
+    "state": "CONFLICT",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "NO_SETUP",
+      "authorization": "NONE",
+      "reason": "family consensus CONFLICT",
+      "probability": null,
+      "probability_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PRIOR_ONLY",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "CONFLICT",
+          "options_response": "NEUTRAL",
+          "cross_index": "NEUTRAL",
+          "momentum_velocity": "NEUTRAL",
+          "breadth": "NEUTRAL",
+          "sector_leadership": "NEUTRAL",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.0,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 50.0,
+          "pe": 50.0,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": null,
+        "target_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CONFLICT",
+      "families": {
+        "structure_location": {
+          "state": "CONFLICT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "PE",
+            "banknifty": "CONFLICT"
+          },
+          "reasons": [
+            "NIFTY: below opening-range low",
+            "BANKNIFTY: bearish EMA alignment",
+            "BANKNIFTY: above opening-range high",
+            "BANKNIFTY: above prior-day high"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path NO_EDGE",
+            "BANKNIFTY: option path NO_EDGE"
+          ]
+        },
+        "cross_index": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index baseline unavailable"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index momentum not confirmed"
+          ]
+        },
+        "breadth": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 8,
+            "decliners": 7,
+            "flat": 0,
+            "participation_balance": 0.067,
+            "median_change_pct": 0.075
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "constituent participation mixed"
+          ]
+        },
+        "sector_leadership": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancing_sectors": 5,
+            "declining_sectors": 3,
+            "participation_balance": 0.25,
+            "leaders": [
+              [
+                "REALTY",
+                1.625
+              ],
+              [
+                "BANK",
+                0.688
+              ],
+              [
+                "AUTO",
+                0.461
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                -0.63
+              ],
+              [
+                "METAL",
+                -1.527
+              ],
+              [
+                "PHARMA",
+                -1.837
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "sector leadership mixed"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 13.46,
+            "change_pct": 0.373,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 0,
+        "pe": 0,
+        "conflict": 1,
+        "directional": 1
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-09-30T15:29:36.351272+05:30",
+          "session_date": "2026-09-30",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.351272+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.351272+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.351272+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.351272+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.560970+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.754956+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-09-30T15:29:36.980784+05:30",
+            "session_date": "2026-09-30",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 2576,
+    "at": "2026-10-01T11:05:36.391176+05:30",
+    "state": "PE_EVIDENCE",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "momentum_velocity",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "DETECTED",
+      "authorization": "SHADOW_ONLY",
+      "direction": "PE",
+      "contract": {
+        "strike": 22550.0,
+        "expiry": "2026-10-06",
+        "instrument_key": "NSE_FO|40700"
+      },
+      "contract_quality": 97.9,
+      "trade_quality": 86.9,
+      "reference_entry": 115.95,
+      "reference_stop": 98.56,
+      "reference_t1": 139.14,
+      "reference_t2": 156.53,
+      "reference_rr_t1": 1.33,
+      "probability": 38.03,
+      "note": "Trade/contract quality is separate from direction. Provisional probability is review-only; ARMED requires structural trigger, sizing, costs and validation.",
+      "probability_status": "PROVISIONAL",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PROVISIONAL",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "PE",
+          "options_response": "NEUTRAL",
+          "cross_index": "NEUTRAL",
+          "momentum_velocity": "PE",
+          "breadth": "NEUTRAL",
+          "sector_leadership": "PE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.375,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 44.38,
+          "pe": 55.62,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": {
+          "probability": 38.03,
+          "event": "T1 before stop within 30 minutes or session close",
+          "horizon_minutes": 30,
+          "entry": 115.95,
+          "stop": 98.56,
+          "target": 139.14,
+          "contract": {
+            "strike": 22550.0,
+            "expiry": "2026-10-06",
+            "instrument_key": "NSE_FO|40700"
+          },
+          "barrier_prior": 0.428536,
+          "method": "clip(0.8 * (entry-stop)/(target-stop) + 0.10 * signed_family_strength, 0.20, 0.60)",
+          "complement": "stop OR timeout without T1; not P(stop before T1)",
+          "costs_included": false,
+          "fill_assumed": false,
+          "limitations": "Reference premium barriers only; no slippage, fees, IV/theta model or calibrated horizon dynamics"
+        },
+        "target_status": "PROVISIONAL"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "PE_EVIDENCE",
+      "families": {
+        "structure_location": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 2.0,
+          "components": {
+            "nifty": "PE",
+            "banknifty": "PE"
+          },
+          "reasons": [
+            "NIFTY: bearish EMA alignment",
+            "NIFTY: below prior-day low",
+            "BANKNIFTY: bearish EMA alignment"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path BUILDING_BASELINE",
+            "BANKNIFTY: option path BUILDING_BASELINE"
+          ]
+        },
+        "cross_index": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index baseline unavailable"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "reasons": [
+            "NIFTY and BANKNIFTY momentum confirm down"
+          ]
+        },
+        "breadth": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 8,
+            "decliners": 6,
+            "flat": 1,
+            "participation_balance": 0.133,
+            "median_change_pct": 0.066
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "constituent participation mixed"
+          ]
+        },
+        "sector_leadership": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "metrics": {
+            "advancing_sectors": 2,
+            "declining_sectors": 6,
+            "participation_balance": -0.5,
+            "leaders": [
+              [
+                "IT",
+                1.734
+              ],
+              [
+                "BANK",
+                0.452
+              ],
+              [
+                "ENERGY",
+                -0.203
+              ]
+            ],
+            "laggards": [
+              [
+                "METAL",
+                -1.206
+              ],
+              [
+                "REALTY",
+                -1.57
+              ],
+              [
+                "AUTO",
+                -3.236
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership negative"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 13.65,
+            "change_pct": 1.186,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 0,
+        "pe": 3,
+        "conflict": 0,
+        "directional": 3
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-10-01T11:05:36.136807+05:30",
+          "session_date": "2026-10-01",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.136807+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.136807+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.136807+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.136807+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.218785+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.295786+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:05:36.391176+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "momentum_velocity",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 2581,
+    "at": "2026-10-01T11:06:08.476248+05:30",
+    "state": "CONFLICT",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "options_response",
+        "cross_index",
+        "momentum_velocity",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "NO_SETUP",
+      "authorization": "NONE",
+      "reason": "family consensus CONFLICT",
+      "probability": null,
+      "probability_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PRIOR_ONLY",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "PE",
+          "options_response": "CE",
+          "cross_index": "CE",
+          "momentum_velocity": "PE",
+          "breadth": "NEUTRAL",
+          "sector_leadership": "PE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.0,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 50.0,
+          "pe": 50.0,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": null,
+        "target_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CONFLICT",
+      "families": {
+        "structure_location": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 2.0,
+          "components": {
+            "nifty": "PE",
+            "banknifty": "PE"
+          },
+          "reasons": [
+            "NIFTY: bearish EMA alignment",
+            "NIFTY: below prior-day low",
+            "BANKNIFTY: bearish EMA alignment"
+          ]
+        },
+        "options_response": {
+          "state": "CE",
+          "ce": 2.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "CE",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path CE_STRENGTHENING",
+            "BANKNIFTY: option path NO_EDGE"
+          ]
+        },
+        "cross_index": {
+          "state": "CE",
+          "ce": 1.5,
+          "pe": 0.0,
+          "reasons": [
+            "both index paths up"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "reasons": [
+            "NIFTY and BANKNIFTY momentum confirm down"
+          ]
+        },
+        "breadth": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 8,
+            "decliners": 6,
+            "flat": 1,
+            "participation_balance": 0.133,
+            "median_change_pct": 0.055
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "constituent participation mixed"
+          ]
+        },
+        "sector_leadership": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "metrics": {
+            "advancing_sectors": 2,
+            "declining_sectors": 6,
+            "participation_balance": -0.5,
+            "leaders": [
+              [
+                "IT",
+                1.691
+              ],
+              [
+                "BANK",
+                0.461
+              ],
+              [
+                "ENERGY",
+                -0.154
+              ]
+            ],
+            "laggards": [
+              [
+                "METAL",
+                -1.164
+              ],
+              [
+                "REALTY",
+                -1.516
+              ],
+              [
+                "AUTO",
+                -3.201
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership negative"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 13.62,
+            "change_pct": 0.964,
+            "regime": "NORMAL",
+            "impulse": "STABLE"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility stable"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 2,
+        "pe": 3,
+        "conflict": 0,
+        "directional": 5
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-10-01T11:06:08.219291+05:30",
+          "session_date": "2026-10-01",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.219291+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.219291+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.219291+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.219291+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.315576+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.396494+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T11:06:08.460076+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "options_response",
+          "cross_index",
+          "momentum_velocity",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 4681,
+    "at": "2026-10-01T15:02:23.684714+05:30",
+    "state": "PE_EVIDENCE",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "breadth",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "DETECTED",
+      "authorization": "SHADOW_ONLY",
+      "direction": "PE",
+      "contract": {
+        "strike": 22400.0,
+        "expiry": "2026-10-06",
+        "instrument_key": "NSE_FO|40688"
+      },
+      "contract_quality": 98.4,
+      "trade_quality": 87.2,
+      "reference_entry": 124.4,
+      "reference_stop": 105.74,
+      "reference_t1": 149.28,
+      "reference_t2": 167.94,
+      "reference_rr_t1": 1.33,
+      "probability": 38.03,
+      "note": "Trade/contract quality is separate from direction. Provisional probability is review-only; ARMED requires structural trigger, sizing, costs and validation.",
+      "probability_status": "PROVISIONAL",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PROVISIONAL",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "PE",
+          "options_response": "NEUTRAL",
+          "cross_index": "NEUTRAL",
+          "momentum_velocity": "NEUTRAL",
+          "breadth": "PE",
+          "sector_leadership": "PE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.375,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 44.38,
+          "pe": 55.62,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": {
+          "probability": 38.03,
+          "event": "T1 before stop within 30 minutes or session close",
+          "horizon_minutes": 30,
+          "entry": 124.4,
+          "stop": 105.74,
+          "target": 149.28,
+          "contract": {
+            "strike": 22400.0,
+            "expiry": "2026-10-06",
+            "instrument_key": "NSE_FO|40688"
+          },
+          "barrier_prior": 0.428571,
+          "method": "clip(0.8 * (entry-stop)/(target-stop) + 0.10 * signed_family_strength, 0.20, 0.60)",
+          "complement": "stop OR timeout without T1; not P(stop before T1)",
+          "costs_included": false,
+          "fill_assumed": false,
+          "limitations": "Reference premium barriers only; no slippage, fees, IV/theta model or calibrated horizon dynamics"
+        },
+        "target_status": "PROVISIONAL"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "PE_EVIDENCE",
+      "families": {
+        "structure_location": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 2.0,
+          "components": {
+            "nifty": "PE",
+            "banknifty": "PE"
+          },
+          "reasons": [
+            "NIFTY: below opening-range low",
+            "NIFTY: below prior-day low",
+            "BANKNIFTY: below opening-range low"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path NO_EDGE",
+            "BANKNIFTY: option path BUILDING_BASELINE"
+          ]
+        },
+        "cross_index": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index baseline unavailable"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index momentum not confirmed"
+          ]
+        },
+        "breadth": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "metrics": {
+            "advancers": 4,
+            "decliners": 11,
+            "flat": 0,
+            "participation_balance": -0.467,
+            "median_change_pct": -0.62
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "broad constituent participation down"
+          ]
+        },
+        "sector_leadership": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "metrics": {
+            "advancing_sectors": 1,
+            "declining_sectors": 7,
+            "participation_balance": -0.75,
+            "leaders": [
+              [
+                "IT",
+                1.7
+              ],
+              [
+                "BANK",
+                -0.348
+              ],
+              [
+                "ENERGY",
+                -0.689
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                -1.799
+              ],
+              [
+                "METAL",
+                -2.574
+              ],
+              [
+                "AUTO",
+                -3.696
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership negative"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 14.71,
+            "change_pct": 9.044,
+            "regime": "NORMAL",
+            "impulse": "EXPANDING"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility expanding"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 0,
+        "pe": 3,
+        "conflict": 0,
+        "directional": 3
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-10-01T15:02:23.055285+05:30",
+          "session_date": "2026-10-01",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.055285+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.055285+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.055285+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.055285+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.281152+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.507280+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:02:23.684714+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "breadth",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  },
+  {
+    "id": 4919,
+    "at": "2026-10-01T15:29:35.704086+05:30",
+    "state": "CONFLICT",
+    "readiness": {
+      "live_evidence_ready": true,
+      "blocked_sources": [],
+      "directional_families": [
+        "structure_location",
+        "sector_leadership"
+      ],
+      "authorization_ceiling": "SHADOW_ONLY",
+      "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+    },
+    "decision": {
+      "status": "NO_SETUP",
+      "authorization": "NONE",
+      "reason": "family consensus CONFLICT",
+      "probability": null,
+      "probability_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP",
+      "probability_review": {
+        "version": "provisional-v1",
+        "status": "PRIOR_ONLY",
+        "calibration_ready": false,
+        "calibrated": false,
+        "sample_support": 0,
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "authorization": "NONE",
+        "unit": "percent",
+        "family_states": {
+          "structure_location": "CONFLICT",
+          "options_response": "NEUTRAL",
+          "cross_index": "NEUTRAL",
+          "momentum_velocity": "NEUTRAL",
+          "breadth": "NEUTRAL",
+          "sector_leadership": "PE",
+          "volatility": "NEUTRAL",
+          "derivatives_positioning": "STALE_CONTEXT"
+        },
+        "fresh_evidence": true,
+        "evidence_strength": 0.0,
+        "coverage": 0.875,
+        "directional": {
+          "ce": 50.0,
+          "pe": 50.0,
+          "meaning": "heuristic relative directional preference; not option profit odds"
+        },
+        "regime": {
+          "status": "UNAVAILABLE",
+          "confidence": null
+        },
+        "method": "50 + 15 * (CE families - PE families) / 8; conflicts/stale reset to 50",
+        "limitations": [
+          "No fitted model or validated samples",
+          "Families may remain correlated",
+          "No empirical uncertainty interval",
+          "Not trade authorization"
+        ],
+        "target_before_stop": null,
+        "target_status": "UNAVAILABLE_NO_ELIGIBLE_SETUP"
+      },
+      "calibration_ready": false,
+      "mode": "shadow",
+      "read_only": true,
+      "auto_execution": false,
+      "challengers": {
+        "mode": "shadow",
+        "read_only": true,
+        "auto_execution": false,
+        "calibration_ready": false,
+        "promotion": "MANUAL_REVIEW_REQUIRED",
+        "models": [
+          {
+            "name": "hmm_regime",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "lightgbm",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "xgboost",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "qlib",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "triple_barrier_meta",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "calibration",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          },
+          {
+            "name": "quantum_inspired_optimizer",
+            "status": "UNAVAILABLE",
+            "reason": "No reviewed trained artifact configured",
+            "weight": 0
+          }
+        ]
+      }
+    },
+    "families": {
+      "state": "CONFLICT",
+      "families": {
+        "structure_location": {
+          "state": "CONFLICT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "CONFLICT",
+            "banknifty": "CE"
+          },
+          "reasons": [
+            "NIFTY: bullish EMA alignment",
+            "NIFTY: below opening-range low",
+            "NIFTY: below prior-day low",
+            "BANKNIFTY: bullish EMA alignment"
+          ]
+        },
+        "options_response": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "components": {
+            "nifty": "NEUTRAL",
+            "banknifty": "NEUTRAL"
+          },
+          "reasons": [
+            "NIFTY: option path NO_EDGE",
+            "BANKNIFTY: option path NO_EDGE"
+          ]
+        },
+        "cross_index": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index baseline unavailable"
+          ]
+        },
+        "momentum_velocity": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "reasons": [
+            "cross-index momentum not confirmed"
+          ]
+        },
+        "breadth": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "advancers": 5,
+            "decliners": 10,
+            "flat": 0,
+            "participation_balance": -0.333,
+            "median_change_pct": -0.84
+          },
+          "quality": {
+            "usable": 15,
+            "required": 10
+          },
+          "reasons": [
+            "constituent participation mixed"
+          ]
+        },
+        "sector_leadership": {
+          "state": "PE",
+          "ce": 0.0,
+          "pe": 1.5,
+          "metrics": {
+            "advancing_sectors": 1,
+            "declining_sectors": 7,
+            "participation_balance": -0.75,
+            "leaders": [
+              [
+                "IT",
+                2.165
+              ],
+              [
+                "BANK",
+                -0.334
+              ],
+              [
+                "PHARMA",
+                -0.466
+              ]
+            ],
+            "laggards": [
+              [
+                "FMCG",
+                -1.617
+              ],
+              [
+                "METAL",
+                -2.335
+              ],
+              [
+                "AUTO",
+                -3.457
+              ]
+            ]
+          },
+          "quality": {
+            "usable": 8,
+            "required": 5
+          },
+          "reasons": [
+            "broad sector leadership negative"
+          ]
+        },
+        "volatility": {
+          "state": "NEUTRAL",
+          "ce": 0.0,
+          "pe": 0.0,
+          "metrics": {
+            "vix": 14.43,
+            "change_pct": 6.968,
+            "regime": "NORMAL",
+            "impulse": "EXPANDING"
+          },
+          "quality": {
+            "usable": true
+          },
+          "reasons": [
+            "India VIX normal regime; volatility expanding"
+          ]
+        },
+        "derivatives_positioning": {
+          "state": "STALE_CONTEXT",
+          "ce": 0.0,
+          "pe": 0.0,
+          "quality": {
+            "freshness": "CENTRAL_GATE_BLOCKED"
+          },
+          "reasons": [
+            "derivatives require fresh option-chain observations"
+          ]
+        }
+      },
+      "family_counts": {
+        "ce": 0,
+        "pe": 1,
+        "conflict": 1,
+        "directional": 2
+      },
+      "authorization": "NONE",
+      "note": "Consensus counts independent evidence families, not per-index correlated observations; not calibrated probability or trade authorization.",
+      "freshness": {
+        "session": {
+          "now": "2026-10-01T15:29:35.090826+05:30",
+          "session_date": "2026-10-01",
+          "market_open": true,
+          "timezone": "Asia/Kolkata"
+        },
+        "nifty_options": {
+          "source": "NIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.090826+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_options": {
+          "source": "BANKNIFTY_OPTIONS",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.090826+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "nifty_structure": {
+          "source": "NIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.090826+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "banknifty_structure": {
+          "source": "BANKNIFTY_STRUCTURE",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.090826+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "breadth": {
+          "source": "BREADTH",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.267886+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "sector_leadership": {
+          "source": "SECTOR_LEADERSHIP",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.461465+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        },
+        "volatility": {
+          "source": "INDIA_VIX",
+          "eligible": true,
+          "state": "LIVE",
+          "session": {
+            "now": "2026-10-01T15:29:35.704086+05:30",
+            "session_date": "2026-10-01",
+            "market_open": true,
+            "timezone": "Asia/Kolkata"
+          },
+          "reasons": []
+        }
+      },
+      "readiness": {
+        "live_evidence_ready": true,
+        "blocked_sources": [],
+        "directional_families": [
+          "structure_location",
+          "sector_leadership"
+        ],
+        "authorization_ceiling": "SHADOW_ONLY",
+        "note": "Freshness readiness is necessary but never sufficient for ARMED/GO."
+      }
+    }
+  }
+]

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 const endpoints = {
   health: '/health', observer: '/v1/observation/status', duel: '/v1/duel',
   nifty: '/v1/options/NIFTY', banknifty: '/v1/options/BANKNIFTY',
-  journal: '/v1/validation/recent?limit=50', signals: '/v1/signals',
+  journal: '/v1/validation/recent?limit=50', signals: '/v1/signals', review: '/v1/decision/current',
 };
 
 export async function GET() {

@@ -20,10 +20,8 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
-<<<<<<< HEAD
 # Local historical research archives (never live evidence or source assets).
 /local-data/
-=======
 # Local historical evidence archives (never commit market datasets).
 *.sqlite3
 *.sqlite3-wal
@@ -31,4 +29,3 @@ Thumbs.db
 
 *.tsbuildinfo
 audit-results/
->>>>>>> origin/build/foundation
