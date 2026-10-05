@@ -3,6 +3,8 @@
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 data class EndpointResult(
     val data: JsonElement = JsonNull.INSTANCE,
@@ -26,28 +28,28 @@ class DanteXRepository(
     private val apiProvider: () -> DanteXApi
 ) {
 
-    suspend fun dashboard(): DashboardSnapshot {
+    suspend fun dashboard(): DashboardSnapshot = coroutineScope {
 
         val api = apiProvider()
         // Use one address for the entire snapshot.
         val health = api.health()
 
         // Everything below is independently fault tolerant.
-        val decision = safe { api.currentDecision() }
-        val calibration = safe { api.calibration() }
-        val expert = safe { api.expertStatus() }
-        val signals = safe { api.signals() }
-        val observation = safe { api.observationStatus() }
-        val market = safe { api.marketState() }
+        val decision = async { safe { api.currentDecision() } }
+        val calibration = async { safe { api.calibration() } }
+        val expert = async { safe { api.expertStatus() } }
+        val signals = async { safe { api.signals() } }
+        val observation = async { safe { api.observationStatus() } }
+        val market = async { safe { api.marketState() } }
 
-        return DashboardSnapshot(
+        DashboardSnapshot(
             health = health,
-            decision = decision,
-            calibration = calibration,
-            expert = expert,
-            signals = signals,
-            observation = observation,
-            market = market
+            decision = decision.await(),
+            calibration = calibration.await(),
+            expert = expert.await(),
+            signals = signals.await(),
+            observation = observation.await(),
+            market = market.await()
         )
     }
 

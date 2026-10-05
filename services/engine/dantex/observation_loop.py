@@ -63,11 +63,14 @@ class ObservationLoop:
                         raise RuntimeError(f"{symbol}:{snap.get('status')}")
                 trading_open = bool(market_session(now)["market_open"])
                 # Closing snapshots are context, not fresh trade outcome ticks.
+                evaluated_payload = {}
+                # Finalize tracked paths at session close without treating closing
+                # context quotes as fresh ticks. The tracker verifies quote timestamps.
+                self._outcomes.observe(snapshots if trading_open else {})
                 if trading_open:
-                    self._outcomes.observe(snapshots)
                     # Evaluate and persist paper lifecycle without requiring an open UI.
                     from .api import evaluate_option_duel
-                    evaluate_option_duel(snapshots["NIFTY"], snapshots["BANKNIFTY"])
+                    evaluated_payload = evaluate_option_duel(snapshots["NIFTY"], snapshots["BANKNIFTY"])
                 # Persist every successful observation, not only /v1/duel calls.
                 # This makes the deployed shadow observer useful unattended:
                 # market snapshots continue flowing to the configured durable
@@ -103,7 +106,7 @@ class ObservationLoop:
                 # A learner/provider failure must not stop market recording.
                 try:
                     from .api import run_learning_cycle
-                    run_learning_cycle(snapshots, now)
+                    run_learning_cycle(snapshots, now, evaluated_payload=evaluated_payload)
                     self.learning_error = None
                 except Exception as exc:
                     self.learning_error = type(exc).__name__

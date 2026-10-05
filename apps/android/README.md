@@ -1,4 +1,4 @@
-﻿# Dante-X Android Console
+# Dante-X Android Console
 
 Read-only Android operator console for the Dante-X shadow engine.
 
@@ -35,21 +35,22 @@ Backend endpoints consumed:
 
 Additional backend endpoints remain available for later screens.
 
-Version 0.2 displays the backend's shared NIFTY directional preference with
-BANKNIFTY confirmation, separately from final action and paper lifecycle.
-It consumes `/v1/decision/current.probability_review`; it never reads model
-advice as calibrated profit odds or invents per-index percentages. Four-way
-per-index evidence scores and missing/stale reasons are displayed separately.
-Malformed or expired directional values display Unavailable; a backend neutral
-prior is explicitly labeled. All values use percent units, including values
-below 1, without implicit rescaling.
+Version 0.4 shows two separate NIFTY and BANK NIFTY cards. Each consumes its
+own `index_probability_reviews` entry from `/v1/decision/current`. The server
+uses that index's structure and option-response families for a bounded,
+provisional directional prior. Shared consensus and trade authorization remain
+independent. Equal values are possible when evidence agrees or is neutral.
 
-Run `gradlew testDebugUnitTest assembleDebug`. Version 0.3 defaults to the current laptop address `.109`. The Engine / API
-Base URL field is available even offline. Save & Connect validates and persists
-the HTTP(S) root address across restarts and reconnects every read-only API.
-Test Connection probes the entered address at `/health` without saving it;
-it shows reachability, backend status or a connection error. Credentials, paths,
-queries, fragments and invalid ports are rejected. LAN HTTP cleartext support
-and the existing INTERNET-only permission are preserved. Phone installation requires
-an attached authorized device or manually installing the APK. No broker
-execution is implemented. Local SDK paths and build caches are excluded.
+The screen shows provisional CE/PE percentages, CE/PE action and expandable
+evidence/blockers. Technical endpoint diagnostics are collapsed. The URL editor
+and health test are available through Settings, including while offline. The
+saved address survives restart. The default remains http://192.168.1.109:8000/.
+
+Missing per-index API fields never fall back to the consolidated probability.
+The app requests an engine update instead. Expired, future-dated, wrong-scope
+or malformed values display Unavailable. Explicit 50/50 neutral priors remain
+labeled. No calibrated win-rate or profit claim is made.
+
+Run `gradlew testDebugUnitTest assembleDebug lintDebug`. Debug builds are signed
+with the local Android debug certificate. No network permissions were added;
+existing LAN HTTP support is retained. Phone installation is a manual step.

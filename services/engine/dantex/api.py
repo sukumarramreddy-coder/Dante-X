@@ -142,7 +142,7 @@ def build_option_duel(snapshots=None):
         review_expert_safely({"NIFTY": nifty, "BANKNIFTY": bank}, {}, {})
         return {"state": "DATA_NOT_READY", "nifty_status": nifty.get("status"), "banknifty_status": bank.get("status"), "mode": "shadow",
                 "decision": shadow_decision({}, {"live_evidence_ready": False}, {})}
-    return evaluate_option_duel()
+    return evaluate_option_duel(nifty, bank)
 
 
 def evaluate_option_duel(nifty=None, bank=None):
@@ -341,10 +341,11 @@ def evaluate_option_duel(nifty=None, bank=None):
     }
 
 
-def run_learning_cycle(snapshots, now=None):
+def run_learning_cycle(snapshots, now=None, *, evaluated_payload=None):
     window = learning_window()
     active = market_session(now)["market_open"]
-    payload = build_option_duel(snapshots) if active else {}
+    payload = (evaluated_payload if evaluated_payload is not None else
+               build_option_duel(snapshots)) if active else {}
     if not active and not window.pending(now):
         return window.report(now)
     client = UpstoxRestClient(UpstoxConfig(access_token=UpstoxCredentials.from_env().analytics_token))

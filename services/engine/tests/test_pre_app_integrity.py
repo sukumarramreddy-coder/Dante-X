@@ -96,7 +96,7 @@ def test_unproven_option_snapshots_cannot_label_outcomes():
         'status': 'DETECTED', 'contract': {'instrument_key': 'option'},
         'entry': 100, 'stop': 90, 't1': 110, 't2': 120}}
     labels = []
-    tracker = OutcomeTracker(SimpleNamespace(unlabelled=lambda limit: [sample], label=lambda *args: labels.append(args)))
+    tracker = OutcomeTracker(SimpleNamespace(unlabelled=lambda limit, **kwargs: [sample], label=lambda *args: labels.append(args)))
     tracker.observe({'NIFTY': {'strikes': [{'call': {'instrument_key': 'option', 'ltp': 120}}]}})
     assert not labels
     assert not tracker.paths

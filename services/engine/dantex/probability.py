@@ -15,6 +15,49 @@ def finite_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
 
 
+def index_evidence_priors(options: dict, structures: dict, snapshot: dict) -> dict:
+    """Display-only local priors. Never used by consensus, learning or authorization."""
+    from .evidence_families import options_family, structure_family
+
+    result = {}
+    for symbol in ("NIFTY", "BANKNIFTY"):
+        option = options.get(symbol) or {}
+        index = (snapshot.get("indices") or {}).get(symbol) or {}
+        local = {"structure": structure_family(structures.get(symbol)),
+                 "option_response": options_family(option)}
+        path_state = (option.get("path_response") or {}).get("state")
+        if not path_state or path_state in {"UNAVAILABLE", "STALE_CONTEXT", "WARMING_UP"}:
+            local["option_response"]["state"] = "UNAVAILABLE"
+        states = {name: family["state"] for name, family in local.items()}
+        fresh = index.get("fresh") is True
+        ce = sum(state == "CE" for state in states.values())
+        pe = sum(state == "PE" for state in states.values())
+        conflict = "CONFLICT" in states.values() or (ce > 0 and pe > 0)
+        blocked = not fresh or conflict
+        strength = 0.0 if blocked else (ce-pe) / 2
+        p_ce = round(50 + 15*strength, 2)
+        result[symbol] = {
+            "version": "index-provisional-v1", "scope": symbol,
+            "timestamp": snapshot.get("timestamp"),
+            "status": "PRIOR_ONLY" if blocked or not (ce or pe) else "PROVISIONAL",
+            "directional": {"ce": p_ce, "pe": round(100-p_ce, 2)},
+            "fresh_evidence": fresh, "family_states": states,
+            "calibrated": False, "calibration_ready": False, "sample_support": 0,
+            "authorization": "NONE", "auto_execution": False, "read_only": True,
+            "unit": "percent", "mode": "shadow",
+            "data_quality": "STALE_OR_MISSING" if not fresh else "CONFLICT" if conflict else "FRESH",
+            "blocked_sources": [] if fresh else [symbol + ".freshness"],
+            "missing_families": [name for name, state in states.items()
+                                 if state in {"UNAVAILABLE", "STALE_CONTEXT"}],
+            "data_reasons": [reason for family in local.values() for reason in family.get("reasons", [])],
+            "method": "50 + 15 * (local CE families - local PE families) / 2; conflict/stale => 50",
+            "limitations": ["Provisional heuristic; not calibrated profit odds or trade authorization",
+                            "Uses only this index's structure and option response; two correlated families",
+                            "No fitted model, empirical uncertainty interval or verified outcome support"],
+        }
+    return result
+
+
 def evidence_prior(families: dict, readiness: dict) -> dict:
     """One bounded vote per known family, shrunk toward an explicit neutral prior."""
     inputs = families.get("families") or {}

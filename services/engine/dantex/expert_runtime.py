@@ -5,7 +5,7 @@ from threading import Lock
 from .expert_engine import four_way, reconcile
 from .expert_provider import OpenAIExpertReasoningProvider, snapshot_digest
 from .expert_snapshot import normalized_snapshot
-from .probability import evidence_prior
+from .probability import evidence_prior, index_evidence_priors
 
 
 class DecisionRuntime:
@@ -35,6 +35,10 @@ class DecisionRuntime:
                 if not restored.get("probability_review"):
                     restored["probability_review"] = evidence_prior({}, {"live_evidence_ready": False,
                         "blocked_sources": ["historical_review_without_directional_family_provenance"]})
+                if not restored.get("index_probability_reviews"):
+                    # Explicit neutral context, never reconstruct missing past predictions.
+                    restored["index_probability_reviews"] = index_evidence_priors(
+                        {}, {}, {"timestamp": restored["timestamp"], "indices": {}})
                 self._current = restored
         except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
             self.last_error = "audit_context_restore_unavailable"
@@ -62,6 +66,7 @@ class DecisionRuntime:
                   "missing_data": snapshot["missing_data"], "mode": "shadow",
                   "deterministic": deterministic, "final": final,
                   "probability_review": probability_review,
+                  "index_probability_reviews": index_evidence_priors(options, structures, snapshot),
                   "expert_provider_status": self.provider.status()}
         try:
             sample_id = self.recorder.record_duel({"state": "EXPERT_REVIEW", "readiness": {"live_authorization": False}},
@@ -92,8 +97,10 @@ class DecisionRuntime:
         if output.get("restored_from_audit") is True or not 0 <= age <= 60:
             output["feed_fresh"] = False
             output["missing_data"] = sorted(set(output["missing_data"]+["stale_decision"]))
+            reviews = list((output.get("index_probability_reviews") or {}).values())
             if output.get("probability_review"):
-                review = output["probability_review"]
+                reviews.append(output["probability_review"])
+            for review in reviews:
                 review.update(status="PRIOR_ONLY", fresh_evidence=False,
                               data_quality="STALE_OR_MISSING", evidence_strength=0.0)
                 review["directional"].update(ce=50.0, pe=50.0)

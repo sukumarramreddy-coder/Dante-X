@@ -88,10 +88,15 @@ class ValidationRecorder:
         with self._lock,self._connect() as db:
             db.execute("UPDATE validation_samples SET outcome=?,labelled_at=? WHERE id=?",
               (json.dumps(deepcopy(outcome)),datetime.now(IST).isoformat(),sample_id))
-    def unlabelled(self,limit:int=200)->list[dict[str,Any]]:
+    def unlabelled(self,limit:int=200, *, since: str | None = None)->list[dict[str,Any]]:
         with self._connect() as db:
             rows=db.execute("""SELECT id,recorded_at,state,decision,market_snapshot
-              FROM validation_samples WHERE outcome IS NULL ORDER BY id ASC LIMIT ?""",(limit,)).fetchall()
+              FROM validation_samples WHERE outcome IS NULL
+              AND CASE WHEN json_valid(decision) THEN
+                COALESCE(json_extract(decision,'$.status'),json_extract(decision,'$.state'))
+              END IN ('DETECTED','ARMED','GO')
+              AND (? IS NULL OR recorded_at >= ?)
+              ORDER BY id ASC LIMIT ?""",(since,since,limit)).fetchall()
         out=[]
         for rid,ts,state,decision,snap in rows:
             out.append({"id":rid,"recorded_at":ts,"state":state,

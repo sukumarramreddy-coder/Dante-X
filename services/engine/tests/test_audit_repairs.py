@@ -87,7 +87,8 @@ def test_post_market_record_is_persisted_without_live_eligibility(monkeypatch):
     assert len(records) == 1
     assert records[0][0]['readiness']['post_market_context']
     assert records[0][1]['authorization'] == 'NONE'
-    assert not outcomes
+    # Finalize already-collected paths without supplying post-market context prices.
+    assert outcomes == [{}]
     status = loop.snapshot()
     assert status['samples'] == 1
     assert status['state'] == 'POST_MARKET_SAMPLING'
