@@ -1,6 +1,5 @@
 ﻿package com.dantex.console.data
 
-import com.dantex.console.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -20,9 +19,9 @@ object DanteXClient {
         .addInterceptor(logging)
         .build()
 
-    val api: DanteXApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(BuildConfig.DANTEX_BASE_URL)
+    fun create(baseUrl: String): DanteXApi {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
             .client(http)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

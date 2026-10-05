@@ -17,9 +17,9 @@ The Android application:
 
 Default debug backend:
 
-    http://10.0.2.2:8000/
+    http://192.168.1.109:8000/
 
-`10.0.2.2` maps the Android emulator to the Windows host.
+`10.0.2.2` can be entered for the Android emulator to reach the Windows host.
 
 For a physical phone, use the laptop LAN IP while both devices are on the
 same trusted network. Do not expose the development API directly to the
@@ -44,7 +44,12 @@ Malformed or expired directional values display Unavailable; a backend neutral
 prior is explicitly labeled. All values use percent units, including values
 below 1, without implicit rescaling.
 
-Run `gradlew testDebugUnitTest assembleDebug`. The debug APK uses the existing
-trusted-LAN backend address in app/build.gradle.kts. Phone installation requires
+Run `gradlew testDebugUnitTest assembleDebug`. Version 0.3 defaults to the current laptop address `.109`. The Engine / API
+Base URL field is available even offline. Save & Connect validates and persists
+the HTTP(S) root address across restarts and reconnects every read-only API.
+Test Connection probes the entered address at `/health` without saving it;
+it shows reachability, backend status or a connection error. Credentials, paths,
+queries, fragments and invalid ports are rejected. LAN HTTP cleartext support
+and the existing INTERNET-only permission are preserved. Phone installation requires
 an attached authorized device or manually installing the APK. No broker
 execution is implemented. Local SDK paths and build caches are excluded.

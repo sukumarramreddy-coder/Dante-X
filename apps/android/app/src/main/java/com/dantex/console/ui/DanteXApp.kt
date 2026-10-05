@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -38,10 +42,26 @@ fun DanteXApp(
     vm: DashboardViewModel = viewModel()
 ) {
     val state by vm.state.collectAsState()
+    val savedUrl by vm.baseUrl.collectAsState()
+    val connectionStatus by vm.connectionStatus.collectAsState()
+    var draftUrl by remember(savedUrl) { mutableStateOf(savedUrl) }
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
-            when (val current = state) {
+            Column {
+                Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text("Engine / API Base URL", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = draftUrl, onValueChange = { draftUrl = it },
+                        singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        label = { Text("http://192.168.1.109:8000") })
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { vm.saveUrl(draftUrl) }) { Text("Save & Connect") }
+                        Button(onClick = { vm.testConnection(draftUrl) }) { Text("Test Connection") }
+                    }
+                    Text("Saved: $savedUrl", style = MaterialTheme.typography.bodySmall)
+                    Text(connectionStatus, style = MaterialTheme.typography.bodySmall)
+                }
+                when (val current = state) {
 
                 DashboardState.Loading ->
                     LoadingScreen()
@@ -57,6 +77,7 @@ fun DanteXApp(
                         snapshot = current.snapshot,
                         onRefresh = vm::refresh
                     )
+                }
             }
         }
     }

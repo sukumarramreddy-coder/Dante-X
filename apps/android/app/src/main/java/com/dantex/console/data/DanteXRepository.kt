@@ -2,6 +2,7 @@
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
+import kotlinx.coroutines.CancellationException
 
 data class EndpointResult(
     val data: JsonElement = JsonNull.INSTANCE,
@@ -22,12 +23,13 @@ data class DashboardSnapshot(
 )
 
 class DanteXRepository(
-    private val api: DanteXApi = DanteXClient.api
+    private val apiProvider: () -> DanteXApi
 ) {
 
     suspend fun dashboard(): DashboardSnapshot {
 
-        // If this fails, the backend really is unreachable.
+        val api = apiProvider()
+        // Use one address for the entire snapshot.
         val health = api.health()
 
         // Everything below is independently fault tolerant.
@@ -54,6 +56,8 @@ class DanteXRepository(
     ): EndpointResult {
         return try {
             EndpointResult(data = call())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             EndpointResult(
                 error = e.message ?: e::class.java.simpleName
