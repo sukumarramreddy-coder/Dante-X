@@ -6,6 +6,9 @@ from typing import Any
 IST = ZoneInfo("Asia/Kolkata")
 OPEN = time(9,15)
 CLOSE = time(15,30)
+# V3 response clocks can lead the local clock by subsecond skew. This does
+# not apply to exchange trade times, candles, or path observations.
+QUOTE_RESPONSE_CLOCK_SKEW_SECONDS = 1.0
 
 def market_session(now: datetime | None = None) -> dict[str, Any]:
     now = (now or datetime.now(IST)).astimezone(IST)
@@ -16,7 +19,8 @@ def market_session(now: datetime | None = None) -> dict[str, Any]:
 
 def gate(*, source: str, timestamp: str | None = None,
          session_date: str | None = None, provider_fresh: bool | None = None,
-         require_open: bool = True, now: datetime | None = None) -> dict[str, Any]:
+         require_open: bool = True, now: datetime | None = None,
+         quote_response: bool = False) -> dict[str, Any]:
     """Single fail-closed freshness decision for live evidence."""
     session=market_session(now)
     reasons=[]
@@ -35,7 +39,8 @@ def gate(*, source: str, timestamp: str | None = None,
                 raise ValueError("timezone required")
             ts=ts.astimezone(IST)
             age=((now or datetime.now(IST)).astimezone(IST)-ts).total_seconds()
-            if age < 0:
+            future_tolerance = QUOTE_RESPONSE_CLOCK_SKEW_SECONDS if quote_response else 0.0
+            if age < -future_tolerance:
                 reasons.append("source timestamp is in the future")
             if session["market_open"] and age > 180:
                 reasons.append(f"snapshot age {age:.0f}s exceeds live tolerance")

@@ -154,3 +154,37 @@ def test_unverified_quotes_never_enter_forward_path():
     assert not labels
     tracker.observe({}, now=started+timedelta(minutes=2))
     assert labels[0][1]["status"] == "CENSORED"
+
+
+def test_october_backlog_does_not_block_new_forward_outcome(tmp_path):
+    recorder = ValidationRecorder(str(tmp_path / "validation.db"))
+    started = (datetime.now(IST)-timedelta(days=1)).replace(
+        hour=10, minute=0, second=0, microsecond=0)
+    # Old query exhausted LIMIT on these non-directional September rows.
+    for _ in range(200):
+        recorder.record_duel({}, {"status": "EXPERT_REVIEW"})
+    historical = recorder.record_duel({}, {"status": "DETECTED"})
+    current = recorder.record_duel({}, {"status": "DETECTED",
+        "contract": {"instrument_key": "option"},
+        "reference_entry": 100, "reference_stop": 90,
+        "reference_t1": 110, "reference_t2": 120})
+    with recorder._connect() as db:
+        db.execute("UPDATE validation_samples SET recorded_at=? WHERE id<?",
+                   ((started-timedelta(days=1)).isoformat(), current))
+        db.execute("UPDATE validation_samples SET recorded_at=? WHERE id=?",
+                   (started.isoformat(), current))
+        before = db.execute("SELECT * FROM validation_samples WHERE id<? ORDER BY id",
+                            (current,)).fetchall()
+    tracker = OutcomeTracker(recorder, horizon_minutes=1, started_at=started)
+    assert tracker.observe(quote(started+timedelta(seconds=30)),
+                           now=started+timedelta(seconds=30)) == 0
+    assert tracker.observe({}, now=started+timedelta(minutes=1)) == 1
+    result = recorder.recent(1)[0]
+    assert result["id"] == current
+    assert result["outcome"]["eligible"] is True
+    assert result["outcome"]["first_event"] == "T1"
+    assert tracker.paths == {}
+    with recorder._connect() as db:
+        assert db.execute("SELECT * FROM validation_samples WHERE id<? ORDER BY id",
+                          (current,)).fetchall() == before
+    assert [row["id"] for row in recorder.unlabelled()] == [historical]

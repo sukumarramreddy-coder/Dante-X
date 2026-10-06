@@ -28,7 +28,7 @@ def verified_prices(strikes, underlying_key, payload, *, now=None):
     def quote(key, *, option):
         item = quotes.get(key) or {}
         stamp = item.get("timestamp")
-        if not gate(source="V3_QUOTE", timestamp=stamp, now=now)["eligible"]:
+        if not gate(source="V3_QUOTE", timestamp=stamp, now=now, quote_response=True)["eligible"]:
             raise ValueError("missing, stale or future quote response")
         if not finite_number(item.get("last_price")) or item["last_price"] <= 0:
             raise ValueError("invalid quote price")

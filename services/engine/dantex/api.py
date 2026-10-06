@@ -219,7 +219,7 @@ def evaluate_option_duel(nifty=None, bank=None):
             if isinstance(item, dict) and item.get("timestamp")
         ] if isinstance(raw, dict) else []
         breadth_timestamp = min(breadth_timestamps) if breadth_timestamps else None
-        breadth_gate = freshness_gate(source="BREADTH", timestamp=breadth_timestamp)
+        breadth_gate = freshness_gate(source="BREADTH", timestamp=breadth_timestamp, quote_response=True)
         families["freshness"]["breadth"] = breadth_gate
         families["families"]["breadth"] = breadth_family(quotes) if breadth_gate["eligible"] else {
             "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
@@ -245,7 +245,7 @@ def evaluate_option_duel(nifty=None, bank=None):
             if isinstance(item, dict) and item.get("timestamp")
         ] if isinstance(sector_raw, dict) else []
         sector_timestamp = min(sector_timestamps) if sector_timestamps else None
-        sector_gate = freshness_gate(source="SECTOR_LEADERSHIP", timestamp=sector_timestamp)
+        sector_gate = freshness_gate(source="SECTOR_LEADERSHIP", timestamp=sector_timestamp, quote_response=True)
         families["freshness"]["sector_leadership"] = sector_gate
         families["families"]["sector_leadership"] = sector_leadership_family(sector_quotes) if sector_gate["eligible"] else {
             "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
@@ -262,7 +262,7 @@ def evaluate_option_duel(nifty=None, bank=None):
         if isinstance(vix_item, dict):
             vix_quote = {"ltp":vix_item.get("last_price") or vix_item.get("ltp"),
                          "prev_close":_previous_close(vix_item)}
-            vix_gate = freshness_gate(source="INDIA_VIX", timestamp=vix_item.get("timestamp"))
+            vix_gate = freshness_gate(source="INDIA_VIX", timestamp=vix_item.get("timestamp"), quote_response=True)
             families["freshness"]["volatility"] = vix_gate
             families["families"]["volatility"] = volatility_family(vix_quote) if vix_gate["eligible"] else {
                 "state":"STALE_CONTEXT","ce":0.0,"pe":0.0,
