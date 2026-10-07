@@ -1,0 +1,194 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, time
+from threading import Lock, Thread
+from time import sleep
+from zoneinfo import ZoneInfo
+
+from .providers.options_intelligence import options_intelligence
+from .providers.upstox_master import instrument_master
+from .freshness import market_session
+from .validation_recorder import validation_recorder
+from .outcome_tracker import OutcomeTracker
+from .replay_capture import replay_capture
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def _market_window(now: datetime) -> bool:
+    """Record through the entire 15:39 minute, independently of trading hours."""
+    local = now.astimezone(IST)
+    return local.weekday() < 5 and time(9, 15) <= local.time() < time(15, 40)
+
+
+@dataclass
+class ObservationLoop:
+    interval_seconds: int = 30
+    state: str = "OFFLINE"
+    samples: int = 0
+    last_sample_at: datetime | None = None
+    last_error: str | None = None
+    last_persisted_at: datetime | None = None
+    learning_error: str | None = None
+    _started: bool = field(default=False, repr=False)
+    _lock: Lock = field(default_factory=Lock, repr=False)
+    _outcomes: OutcomeTracker = field(default_factory=lambda: OutcomeTracker(validation_recorder), repr=False)
+
+    def start(self) -> None:
+        with self._lock:
+            if self._started:
+                return
+            self._started = True
+            self.state = "STARTING"
+        Thread(target=self._run, name="dantex-observation-loop", daemon=True).start()
+
+    def _run(self) -> None:
+        while True:
+            now = datetime.now(IST)
+            if not _market_window(now):
+                with self._lock:
+                    self.state = "MARKET_CLOSED"
+                sleep(60)
+                continue
+            snapshots = {}
+            try:
+                instrument_master.refresh_async()
+                # Snapshot both underlyings on the same cadence. The option
+                # intelligence object owns bounded per-symbol history.
+                for symbol in ("NIFTY", "BANKNIFTY"):
+                    snap = options_intelligence.snapshot(symbol)
+                    snapshots[symbol] = snap
+                    if snap.get("status") != "OK":
+                        raise RuntimeError(f"{symbol}:{snap.get('status')}")
+                trading_open = bool(market_session(now)["market_open"])
+                # Closing snapshots are context, not fresh trade outcome ticks.
+                evaluated_payload = {}
+                # Finalize tracked paths at session close without treating closing
+                # context quotes as fresh ticks. The tracker verifies quote timestamps.
+                self._outcomes.observe(snapshots if trading_open else {})
+                if trading_open:
+                    # Evaluate and persist paper lifecycle without requiring an open UI.
+                    from .api import evaluate_option_duel
+                    evaluated_payload = evaluate_option_duel(snapshots["NIFTY"], snapshots["BANKNIFTY"])
+                # Persist every successful observation, not only /v1/duel calls.
+                # This makes the deployed shadow observer useful unattended:
+                # market snapshots continue flowing to the configured durable
+                # validation sink through the closing observation window.
+                validation_recorder.record_duel(
+                    {
+                        "state": "OBSERVATION",
+                        "family_counts": {},
+                        "readiness": {
+                            "observer": True,
+                            "market_open": trading_open,
+                            "post_market_context": not trading_open,
+                            "nifty": snapshots["NIFTY"].get("status") == "OK",
+                            "banknifty": snapshots["BANKNIFTY"].get("status") == "OK",
+                        },
+                    },
+                    {
+                        "status": "MARKET_OBSERVATION",
+                        "authorization": "NONE",
+                    },
+                    {
+                        "nifty_spot": snapshots["NIFTY"].get("spot"),
+                        "banknifty_spot": snapshots["BANKNIFTY"].get("spot"),
+                        "nifty_expiry": snapshots["NIFTY"].get("expiry"),
+                        "banknifty_expiry": snapshots["BANKNIFTY"].get("expiry"),
+                        "nifty_path": snapshots["NIFTY"].get("path_response"),
+                        "banknifty_path": snapshots["BANKNIFTY"].get("path_response"),
+                        "replay": replay_capture(options=snapshots, kind="observation"),
+                    },
+                )
+                persisted_at = datetime.now(IST)
+                # Model collection is autonomous, not dependent on UI polling.
+                # A learner/provider failure must not stop market recording.
+                try:
+                    from .api import run_learning_cycle
+                    run_learning_cycle(snapshots, now, evaluated_payload=evaluated_payload)
+                    self.learning_error = None
+                except Exception as exc:
+                    self.learning_error = type(exc).__name__
+                try:
+                    from .api import paper_desk
+                    decision = (evaluated_payload or {}).get("decision") or {}
+                    paper_desk.consider(decision, now=now)
+                except Exception:
+                    pass
+                with self._lock:
+                    self.samples += 1
+                    self.last_sample_at = persisted_at
+                    self.last_persisted_at = persisted_at
+                    self.last_error = None
+                    self.state = "SAMPLING" if trading_open else "POST_MARKET_SAMPLING"
+            except Exception as exc:
+                error = type(exc).__name__
+                with self._lock:
+                    self.last_error = error
+                    self.state = "DEGRADED"
+                # Persist failure heartbeats too. If these stop as well, the
+                # runtime itself is sleeping/stopped rather than Upstox failing.
+                try:
+                    validation_recorder.record_duel(
+                        {
+                            "state": "OBSERVATION_ERROR",
+                            "family_counts": {},
+                            "readiness": {"observer": False},
+                        },
+                        {
+                            "status": "OBSERVATION_FAILED",
+                            "authorization": "NONE",
+                            "error": error,
+                        },
+                        {"observer_error": error,
+                         "replay": replay_capture(options=snapshots, kind="observation_error")},
+                    )
+                except Exception as persist_exc:
+                    with self._lock:
+                        self.last_error = (
+                            f"{error}; persistence={type(persist_exc).__name__}"
+                        )
+            sleep(self.interval_seconds)
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            now = datetime.now(IST)
+            # Live authorization is based on the durable sink when Supabase REST
+            # is configured. A successful write to ephemeral local SQLite must
+            # never make the service claim that durable/live data is current.
+            validation = validation_recorder.status()
+            external = validation.get("external_write") or {}
+            durable_ts = external.get("last_success_at") if validation.get("external_configured") else None
+            durable_at = (datetime.fromisoformat(durable_ts).astimezone(IST) if durable_ts else None) if validation.get("external_configured") else self.last_persisted_at
+            if validation.get("external_configured"):
+                # A diagnostic sink heartbeat cannot refresh an old market sample.
+                durable_at = min(durable_at, self.last_sample_at) if durable_at and self.last_sample_at else None
+            age = (now - durable_at).total_seconds() if durable_at else None
+            freshness = "UNKNOWN" if age is None or age < 0 else ("LIVE" if age < 60 else ("STALE" if age <= 180 else "DEAD"))
+            trading_open = bool(market_session(now)["market_open"])
+            if not trading_open and freshness == "LIVE":
+                freshness = "STALE_CONTEXT"
+            return {
+                "state": self.state,
+                "freshness": freshness,
+                "age_seconds": round(age, 1) if age is not None else None,
+                "live_authorization_eligible": False,
+                "durable_ready": bool(validation.get("durable_ready")),
+                "live_observation_eligible": trading_open and freshness == "LIVE" and bool(validation.get("durable_ready")),
+                "interval_seconds": self.interval_seconds,
+                "samples": self.samples,
+                "last_sample_at": self.last_sample_at.isoformat() if self.last_sample_at else None,
+                "last_persisted_at": durable_at.isoformat() if durable_at else None,
+                "durable_sink_required": bool(validation.get("external_configured")),
+                "durable_sink_error": external.get("last_error"),
+                "durable_sink_failures": external.get("failures", 0),
+                "last_error": self.last_error,
+                "learning_error": self.learning_error,
+                "market_hours": "09:15-15:30 Asia/Kolkata weekdays",
+                "recording_hours": "09:15-15:39 inclusive Asia/Kolkata weekdays",
+                "mode": "shadow",
+            }
+
+
+observation_loop = ObservationLoop()

@@ -30,6 +30,17 @@ Dante X separates:
 
 No LLM-generated percentage is represented as a win probability.
 
+Shadow decisions now expose conservative **provisional, uncalibrated** probabilities
+for review. These frozen heuristics are separate from calibrated win rates and
+cannot authorize execution. Offline challenger adapters, causal regime filtering,
+triple-barrier labels, calibration metrics and a constrained optimizer benchmark
+are described in [the probability/challenger contract](docs/PROBABILITY_CHALLENGERS.md).
+
+The [30-session calibration window](docs/CALIBRATION_LEARNING.md) learns from
+20 qualifying sessions and validates on 10 untouched sessions. Its dashboard
+shows learned bands, outcomes, metrics and blockers. Only passing validation can
+enable manual signals; broker orders remain disabled.
+
 ## Safety and execution
 
 - Read-only market intelligence.
@@ -42,4 +53,22 @@ No LLM-generated percentage is represented as a win probability.
 
 ## Status
 
-Foundation build in progress.
+Core foundation is implemented on the foundation branch: signal lifecycle, two-sided hypotheses, market-response intelligence, execution/risk gates, immutable triggers, shadow simulation, audit persistence, calibration scaffolding, Radar API contract and terminal UI shell.
+
+The system intentionally remains **SHADOW / research mode** until a production market-data provider is connected and historical walk-forward validation makes probability calibration publishable. See `docs/PRODUCTION_READINESS.md`.
+
+### Next external inputs
+
+To cross from code-complete foundation to validated live intelligence, the project needs:
+- approved read-only live market-data credentials/provider
+- a normalized historical dataset suitable for walk-forward validation
+- a deployment target for the engine/UI
+
+These are operational inputs, not reasons to weaken the safety gates.
+
+### Historical bootstrap
+
+The read-only historical importer can accumulate the last 90 provider-reported
+NIFTY/BANKNIFTY sessions in a separate, append-only index-candle archive. It reports
+coverage and missing inputs; it does not claim options calibration. See
+[Historical ingestion](docs/HISTORICAL_INGESTION.md) for the command and storage requirements.
