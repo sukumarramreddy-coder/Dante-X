@@ -13,8 +13,8 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         mode = getenv("DANTEX_MODE", "shadow").lower()
-        if mode not in {"shadow", "live"}:
-            raise ValueError("DANTEX_MODE must be shadow or live")
+        if mode != "shadow":
+            raise ValueError("DANTEX_MODE must be shadow; live order mode is disabled")
         return cls(
             mode=mode,
             database_path=getenv("DANTEX_DB", "dantex.db"),

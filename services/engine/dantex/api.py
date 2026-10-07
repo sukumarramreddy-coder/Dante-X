@@ -31,8 +31,15 @@ from .shadow_lifecycle import ShadowLifecycle
 from .positioning import positioning_snapshot
 from .market_pulse import build_market_pulse
 from .replay_capture import quote_capture, replay_capture
+from .paper_desk import PaperDesk, mt5_shell
+from pathlib import Path
+import os
 
 decision_runtime = DecisionRuntime(validation_recorder)
+paper_desk = PaperDesk(Path(os.getenv(
+    "DANTEX_PAPER_DB",
+    str(Path(validation_recorder.path).with_name("dantex-paper.sqlite3")),
+)))
 
 
 def review_expert_safely(options, structures, families):
@@ -80,6 +87,7 @@ def health():
     observer = observation_loop.snapshot()
     validation = validation_recorder.status()
     live = bool(observer.get("live_observation_eligible"))
+    paper = paper_desk.status()
     return {
         "status": "ok" if live else "degraded",
         "service": "dante-x-engine",
@@ -91,7 +99,30 @@ def health():
             "last_persisted_at": observer.get("last_persisted_at"),
         },
         "durable_sink": validation.get("external_write"),
+        "paper": paper,
+        "mt5": mt5_shell(),
+        "live_orders": False,
     }
+
+
+@app.get("/v1/paper/status")
+def paper_status():
+    return paper_desk.status()
+
+
+@app.post("/v1/paper/kill")
+def paper_kill():
+    return paper_desk.kill()
+
+
+@app.post("/v1/paper/release")
+def paper_release():
+    return paper_desk.release()
+
+
+@app.get("/v1/mt5/status")
+def mt5_status():
+    return mt5_shell()
 
 
 @app.get("/v1/structure/{symbol}")

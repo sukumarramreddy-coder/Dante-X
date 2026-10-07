@@ -110,6 +110,12 @@ class ObservationLoop:
                     self.learning_error = None
                 except Exception as exc:
                     self.learning_error = type(exc).__name__
+                try:
+                    from .api import paper_desk
+                    decision = (evaluated_payload or {}).get("decision") or {}
+                    paper_desk.consider(decision, now=now)
+                except Exception:
+                    pass
                 with self._lock:
                     self.samples += 1
                     self.last_sample_at = persisted_at
